@@ -7,36 +7,36 @@ class RemoteProxy(object):
         def __init__(self, fn):
             functools.update_wrapper(self, fn)
             self.fn = fn
-            self.remoteProxy = None
+            self.remote_proxy = None
 
         def __call__(self, *args, **kwargs):
-            return self.remoteProxy.doRemote("testMethod", *args, **kwargs)
+            return self.remote_proxy.do_remote(self.fn.__name__, *args, **kwargs)
 
     def __init__(self, constructor):
         self.constructor = constructor
-        self.remoteInstance = None
-        self.exposedMethods = dict()
+        self.remote_instance = None
+        self.exposed_methods = dict()
 
     def __getattr__(self, method):
-        if method in self.exposedMethods:
-            return self.exposedMethods[method]
+        if method in self.exposed_methods:
+            return self.exposed_methods[method]
         else:
             raise AttributeError("{} is not a remotely accessible method in {}".format(method, self.constructor.__name__))
 
-    def doRemote(self, methodName, *args, **kwargs):
-        fn = getattr(self.remoteInstance, methodName)
+    def do_remote(self, method_name, *args, **kwargs):
+        fn = getattr(self.remote_instance, method_name).fn
         if not fn is None:
-            fn(*args, **kwargs)
+            fn(self.remote_instance, *args, **kwargs)
 
     def __call__(self, *args, **kwargs):
         # instead of making the instance locally, do this remotely
-        self.remoteInstance = self.constructor(*args, **kwargs)
+        self.remote_instance = self.constructor(*args, **kwargs)
 
         members = self.constructor.__dict__
         for item in members:
             if type(members[item]) == RemoteProxy.Method:
-                members[item].remoteProxy = self
-                self.exposedMethods[item] = members[item]
+                members[item].remote_proxy = self
+                self.exposed_methods[item] = members[item]
 
         return self
 
@@ -46,16 +46,14 @@ class RemoteProxy(object):
 class TestClass(object):
 
     @RemoteProxy.Method
-    def remoteMethod(self):
-        print("here");
+    def remote_method(self):
+        print("remote_method")
 
-    def localMethod(self):
+    def local_method(self):
         print("you can only get here through another methond")
 
-    def testMethod(self):
-        print("this is a test")
 
 
 test = TestClass()
-test.remoteMethod()
-test.localMethod()
+test.remote_method()
+test.local_method()
