@@ -1,0 +1,6 @@
+- remove adhesive startup code (_adhesive.py file)
+- add remote proxy implementation
+- rework rpyc as a support for remote proxy
+- add remote start for worker
+- add installation of requirements (pip3)
+- add separate environment for client
