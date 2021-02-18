@@ -1,8 +1,17 @@
 import functools
 import inspect
 
+is_worker = False
 
 class RemoteProxy(object):
+    @staticmethod
+    def SetWorker(_is_worker = True):
+        is_worker = _is_worker
+
+    @staticmethod
+    def IsWorker():
+        return is_worker
+
     class Method(object):
         def __init__(self, fn):
             functools.update_wrapper(self, fn)
@@ -10,7 +19,10 @@ class RemoteProxy(object):
             self.remote_proxy = None
 
         def __call__(self, *args, **kwargs):
-            return self.remote_proxy.do_remote(self.fn.__name__, *args, **kwargs)
+            if(is_worker):
+                return self.fn
+            else:
+                return self.remote_proxy.do_remote(self.fn.__name__, *args, **kwargs)
 
     def __init__(self, constructor):
         self.constructor = constructor
