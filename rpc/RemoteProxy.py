@@ -3,13 +3,18 @@ import inspect
 
 is_worker = False
 
-def Remote(ctor):
+
+def remote(ctor):
     if is_worker:
         return ctor
     return RemoteProxy(ctor)
 
-def Method(fn):
-    return fn
+
+def method(fn):
+    if is_worker:
+        return fn
+    return remote_method
+
 
 class RemoteProxy(object):
 
@@ -17,16 +22,17 @@ class RemoteProxy(object):
         self.ctor = ctor
         self.args = args
         self.kwargs = kwargs
+        self.remoteInstanceId = None
 
     def __getattr__(self, method):
         fn = self.ctor.__dict__[method]
         if fn is None:
-            raise AttributeError("{} is not a remotely accessible method in {}".format(method, self.ctor.__name__))
-        print(fn.__name__)
-        print(fn)
-        def RemoteCaller(*args, **kwargs):
-            self.do_remote(method, *args, **kwargs)
-        return RemoteCaller
+            return None
+        if fn is remote_method:
+            def remote_caller(*args, **kwargs):
+                self.do_remote(method, *args, **kwargs)
+            return remote_caller
+        raise AttributeError("{} is not a remotely accessible method in {}".format(method, self.ctor.__name__))
 
     def do_remote(self, method_name, *args, **kwargs):
         print("do remote call {}({},{})".format(method_name, args, kwargs))
@@ -34,25 +40,16 @@ class RemoteProxy(object):
     def __call__(self, *args, **kwargs):
         self.do_remote("constructor", *args, **kwargs)
         return self
-#    def __call__(self, *args, **kwargs):
-#        # instead of making the instance locally, do this remotely
-#        self.remote_instance = self.constructor(*args, **kwargs)
 
 
-#        members = self.constructor.__dict__
-#        for item in members:
-#            if type(members[item]) == RemoteProxy.Method:
-#                members[item].remote_proxy = self
-#                self.exposed_methods[item] = members[item]
-
-#        return self
+def remote_method(self):
+    pass
 
 
-
-@Remote
+@remote
 class TestClass(object):
 
-    @Method
+    @method
     def remote_method(self):
         print("remote_method")
 
@@ -60,7 +57,6 @@ class TestClass(object):
         print("you can only get here through another methond")
 
 
-
 test = TestClass()
 test.remote_method()
-test.local_method()
+#test.local_method()
