@@ -54,7 +54,7 @@ class TestClass(object):
         print("remote_method")
 
     def local_method(self):
-        print("you can only get here through another methond")
+        print("you can only get here through another method")
 
 
 test = TestClass()
