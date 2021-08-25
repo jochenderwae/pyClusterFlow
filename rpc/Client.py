@@ -1,7 +1,7 @@
 import pickle
 import socket
 
-from rpc import RemoteInvoke
+from rpc.RemoteInvoke import RemoteInvoke
 from rpc.RemoteInvoke import RemoteCreate
 
 
@@ -63,6 +63,7 @@ class Client(object):
         data = self.read()
         obj = pickle.loads(data)
         remote = RemoteClass(self, obj)
+        return remote
 
 
 class RemoteClass:
@@ -71,7 +72,7 @@ class RemoteClass:
         self.remoteInstanceId = remoteReturn.remoteInstanceId
 
     def call(self, method, *args, **kwargs):
-        remoteInvoke = RemoteInvoke(self.remoteInstanceId, method, *args, **kwargs)
+        remoteInvoke = RemoteInvoke(self.remoteInstanceId, method, args, kwargs)
         data = pickle.dumps(remoteInvoke)
         self.client.send(data)
         data = self.client.read()
