@@ -1,6 +1,8 @@
 import functools
 import inspect
 
+from rpc import Client
+
 is_worker = False
 
 
@@ -22,23 +24,25 @@ class RemoteProxy(object):
         self.ctor = ctor
         self.args = args
         self.kwargs = kwargs
-        self.remoteInstanceId = None
+        self.remoteInstanceHandle = None
 
     def __getattr__(self, method):
+        print("method call")
         fn = self.ctor.__dict__[method]
         if fn is None:
             return None
         if fn is remote_method:
             def remote_caller(*args, **kwargs):
-                self.do_remote(method, *args, **kwargs)
+                if self.remoteInstanceHandle is None:
+                    raise AttributeError("Constructor needs to be called")
+                self.remoteInstanceHandle.call(method, *args, **kwargs)
             return remote_caller
         raise AttributeError("{} is not a remotely accessible method in {}".format(method, self.ctor.__name__))
 
-    def do_remote(self, method_name, *args, **kwargs):
-        print("do remote call {}({},{})".format(method_name, args, kwargs))
-
     def __call__(self, *args, **kwargs):
-        self.do_remote("constructor", *args, **kwargs)
+        print("Call constructor")
+        self.remoteInstanceHandle = Client.createRemote(self.ctor.__name__, *args, **kwargs)
+        print(self.remoteInstanceHandle)
         return self
 
 
@@ -46,17 +50,4 @@ def remote_method(self):
     pass
 
 
-@remote
-class TestClass(object):
 
-    @method
-    def remote_method(self):
-        print("remote_method")
-
-    def local_method(self):
-        print("you can only get here through another method")
-
-
-test = TestClass()
-test.remote_method()
-#test.local_method()
