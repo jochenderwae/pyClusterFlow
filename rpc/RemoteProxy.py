@@ -41,7 +41,16 @@ class RemoteProxy(object):
 
     def __call__(self, *args, **kwargs):
         print("Call constructor")
-        self.remoteInstanceHandle = Client.createRemote(self.ctor.__name__, *args, **kwargs)
+        clsName = ""
+
+        klass = self.ctor
+        module = klass.__module__
+        if module == 'builtins':
+            clsName = klass.__qualname__
+        else:
+            clsName = module + '.' + klass.__qualname__
+
+        self.remoteInstanceHandle = Client.createRemote(clsName, *args, **kwargs)
         print(self.remoteInstanceHandle)
         return self
 

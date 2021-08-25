@@ -1,5 +1,5 @@
 from rpc import Server
-import TestClass
+from TestClass import TestClass
 
 Server.start()
 
