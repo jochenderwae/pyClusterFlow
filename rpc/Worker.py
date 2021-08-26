@@ -25,25 +25,49 @@ class Worker(object):
     def __init__(self, settings):
         self.serverSocket = None
         self.port = settings["port"]
-        self.maxResources = settings["resources"]
-
+        self.resources = {}
+        for resourceName in settings["resources"]:
+            amount = settings["resources"][resourceName]
+            self.resources[resourceName] = []
+            for i in range(amount):
+                self.resources[resourceName].append(resourceName)
+        print(self.resources)
 
     def start(self):
         serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        serverSocket.bind(("localhost", self.port))#socket.gethostname()
+        serverSocket.bind(("localhost", self.port))  # socket.gethostname()
         serverSocket.listen(5)
 
         while True:
             (clientSocket, address) = serverSocket.accept()
-            ct = WorkerThread(clientSocket)
+            ct = WorkerThread(self, clientSocket)
             ct.run()
 
-class WorkerThread (threading.Thread):
-    def __init__(self, clientSocket):
+    def reserveResources(self, requiredResources):
+        reservedResources = []
+        for resourceName in requiredResources:
+            if resourceName not in self.resources or len(self.resources[resourceName]) == 0:
+                raise AttributeError("Resource \"{}\" not available".format(resourceName))
+
+        for resourceName in requiredResources:
+            for n in range(requiredResources[resourceName]):
+                reservedResources.append(self.resources[resourceName].pop())
+
+        return reservedResources
+
+    def releaseResources(self, reservedResources):
+        for resourceName in reservedResources:
+            self.resources[resourceName].append(resourceName)
+
+
+
+class WorkerThread(threading.Thread):
+    def __init__(self, worker, clientSocket):
         threading.Thread.__init__(self)
         self.clientSocket = clientSocket
         self.nextObjectId = 0
         self.objectCache = {}
+        self.worker = worker
 
     def run(self):
         try:
@@ -53,23 +77,24 @@ class WorkerThread (threading.Thread):
                 response = None
 
                 if isinstance(command, RemoteCreate):
-#try:
-                    module_path, class_name = command.clsName.rsplit('.', 1)
-                    module = import_module(module_path)
-                    cls = getattr(module, class_name)
-                    instance = cls()
-                    self.objectCache[self.nextObjectId] = instance
-                    response = RemoteReturn(self.nextObjectId, "constructor", None)
-                    self.nextObjectId += 1
+                    try:
+                        reservedResources = self.worker.reserveResources(command.requiredResources)
+                        module_path, class_name = command.clsName.rsplit('.', 1)
+                        module = import_module(module_path)
+                        cls = getattr(module, class_name)
+                        instance = cls()
+                        self.objectCache[self.nextObjectId] = instance
+                        response = RemoteReturn(self.nextObjectId, "constructor", None, None)
+                        self.nextObjectId += 1
 
-#except (ImportError, AttributeError) as e:
-#    raise ImportError(command.clsName)
+                    except BaseException as e:
+                        response = RemoteReturn(-1, "constructor", None, e)
 
                 if isinstance(command, RemoteInvoke):
                     instance = self.objectCache[command.remoteInstanceId]
                     method = getattr(instance, command.method)
                     returnValue = method(*command.args, **command.kwargs)
-                    response = RemoteReturn(command.remoteInstanceId, command.method, returnValue)
+                    response = RemoteReturn(command.remoteInstanceId, command.method, returnValue, None)
 
                 if response is not None:
                     data = pickle.dumps(response)
@@ -87,5 +112,3 @@ class WorkerThread (threading.Thread):
         if data == b'':
             raise RuntimeError("socket connection broken")
         return data
-
-

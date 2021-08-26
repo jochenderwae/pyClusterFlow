@@ -35,12 +35,14 @@ class WorkerProxy(object):
             raise RuntimeError("socket connection broken")
         return data
 
-    def createRemote(self, clsName, *args, **kwargs):
-        remoteInvoke = RemoteCreate(clsName, *args, **kwargs)
+    def createRemote(self, clsName, requiredResources, *args, **kwargs):
+        remoteInvoke = RemoteCreate(clsName, requiredResources, *args, **kwargs)
         data = pickle.dumps(remoteInvoke)
         self.send(data)
         data = self.read()
         obj = pickle.loads(data)
+        if obj.exception is not None:
+            return None
         remote = RemoteClass(self, obj)
         return remote
 
@@ -78,5 +80,9 @@ class WorkerPool:
             worker.startClient()
 
     def createRemote(self, clsName, requiredResources, *args, **kwargs):
-        #requiredResources
-        return self.workers[0].createRemote(clsName, *args, **kwargs)
+        for remoteWorker in self.workers:
+            remoteInstance = remoteWorker.createRemote(clsName, requiredResources, *args, **kwargs)
+            if remoteInstance is not None:
+                return remoteInstance
+
+        raise AttributeError("No matching worker found")
