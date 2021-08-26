@@ -3,6 +3,7 @@ import threading
 import socket
 from importlib import import_module
 
+import rpc.RemoteProxy
 from rpc.RemoteInvoke import RemoteCreate, RemoteInvoke, RemoteReturn
 
 
@@ -26,26 +27,19 @@ class Worker(object):
 
 
     def startServer(self):
-        # create an INET, STREAMing socket
         serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # bind the socket to a public host, and a well-known port
-        serversocket.bind(("localhost", 37373)) # socket.gethostname()
-        # become a server socket
+        serversocket.bind(("localhost", 37373))
         serversocket.listen(5)
 
         while True:
-            # accept connections from outside
-            print("accepting client sockets")
-            (clientsocket, address) = serversocket.accept()
-            # now do something with the clientsocket
-            # in this case, we'll pretend this is a threaded server
-            ct = WorkerThread(clientsocket)
+            (clientSocket, address) = serversocket.accept()
+            ct = WorkerThread(clientSocket)
             ct.run()
 
 class WorkerThread (threading.Thread):
-    def __init__(self, clientsocket):
+    def __init__(self, clientSocket):
         threading.Thread.__init__(self)
-        self.clientsocket = clientsocket
+        self.clientSocket = clientSocket
         self.nextObjectId = 0
         self.objectCache = {}
 
@@ -57,13 +51,12 @@ class WorkerThread (threading.Thread):
                 response = None
 
                 if isinstance(command, RemoteCreate):
-                    #try:
+#try:
                     module_path, class_name = command.clsName.rsplit('.', 1)
                     module = import_module(module_path)
                     cls = getattr(module, class_name)
                     instance = cls()
                     self.objectCache[self.nextObjectId] = instance
-                    print("Received create class: {} {}".format(self.nextObjectId, instance))
                     response = RemoteReturn(self.nextObjectId, "constructor", None)
                     self.nextObjectId += 1
 
@@ -73,8 +66,7 @@ class WorkerThread (threading.Thread):
                 if isinstance(command, RemoteInvoke):
                     instance = self.objectCache[command.remoteInstanceId]
                     method = getattr(instance, command.method)
-                    returnValue = method(instance, command.args, command.kwargs)
-                    print("Received method call {} on instance {}".format(command.method, command.remoteInstanceId))
+                    returnValue = method(*command.args, **command.kwargs)
                     response = RemoteReturn(command.remoteInstanceId, command.method, returnValue)
 
                 if response is not None:
@@ -84,13 +76,14 @@ class WorkerThread (threading.Thread):
             print("socket closed")
 
     def send(self, msg):
-        sent = self.clientsocket.send(msg)
+        sent = self.clientSocket.send(msg)
         if sent == 0:
             raise RuntimeError("socket connection broken")
 
     def read(self):
-        data = self.clientsocket.recv(2048)
+        data = self.clientSocket.recv(2048)
         if data == b'':
             raise RuntimeError("socket connection broken")
         return data
+
 

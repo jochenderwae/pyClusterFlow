@@ -5,7 +5,8 @@ WorkerDispatcher.start()
 
 
 test = TestClass()
-test.remote_method()
+response = test.remote_method()
+print("remote_method returned: {}".format(response))
 try:
     test.local_method()
 except AttributeError:

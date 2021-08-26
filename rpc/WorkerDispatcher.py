@@ -10,15 +10,12 @@ def start(*args, **kwargs):
     client.startClient()
     return client
 
+
 def createRemote(clsName, *args, **kwargs):
     if not isinstance(WorkerProxy._instance, WorkerProxy):
         raise AttributeError("Client needs to be started first")
     return WorkerProxy._instance.createRemote(clsName, args, kwargs)
 
-def doRemote(method_name, args, kwargs):
-    if not isinstance(WorkerProxy._instance, WorkerProxy):
-        raise AttributeError("Client needs to be started first")
-    WorkerProxy._instance.doRemote(method_name, args, kwargs)
 
 class WorkerProxy(object):
     _instance = None
@@ -32,18 +29,8 @@ class WorkerProxy(object):
         self.socket = None
 
     def startClient(self):
-        # create an INET, STREAMing socket
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # now connect to the web server on port 80 - the normal http port
         self.socket.connect(("localhost", 37373))
-
-    def doRemote(self, method_name, args, kwargs):
-        if method_name == "constructor":
-            #RemoteClass
-            pass
-        self.send(method_name.encode())
-        print("Message \"{}\" sent".format(method_name))
-
 
     def send(self, msg):
         sent = self.socket.send(msg)
@@ -80,3 +67,6 @@ class RemoteClass:
         return obj.returnValue
 
 
+class WorkerPool:
+    def __init__(self):
+        pass
