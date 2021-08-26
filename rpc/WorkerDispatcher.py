@@ -4,33 +4,25 @@ import socket
 from rpc.RemoteInvoke import RemoteInvoke
 from rpc.RemoteInvoke import RemoteCreate
 
+workerDispatcherInstance = None
 
-def start(*args, **kwargs):
-    client = WorkerProxy(*args, **kwargs)
-    client.startClient()
-    return client
-
-
-def createRemote(clsName, *args, **kwargs):
-    if not isinstance(WorkerProxy._instance, WorkerProxy):
+def createRemote(clsName, requiredResources, *args, **kwargs):
+    if not isinstance(workerDispatcherInstance, WorkerPool):
         raise AttributeError("Client needs to be started first")
-    return WorkerProxy._instance.createRemote(clsName, args, kwargs)
+    return workerDispatcherInstance.createRemote(clsName, requiredResources, *args, **kwargs)
 
 
 class WorkerProxy(object):
-    _instance = None
 
-    def __new__(cls, *args, **kwargs):
-        if not isinstance(cls._instance, cls):
-            cls._instance = object.__new__(cls, *args, **kwargs)
-        return cls._instance
-
-    def __init__(self, *args, **kwargs):
+    def __init__(self, host=socket.gethostname(), port=37373):
         self.socket = None
+        self.host = host
+        self.port = port
 
     def startClient(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.connect(("localhost", 37373))
+        print("connecting to {}:{}".format(self.host, self.port))
+        self.socket.connect((self.host, self.port))
 
     def send(self, msg):
         sent = self.socket.send(msg)
@@ -68,5 +60,23 @@ class RemoteClass:
 
 
 class WorkerPool:
-    def __init__(self):
-        pass
+    def __init__(self, workers=[]):
+        global workerDispatcherInstance
+        if isinstance(workerDispatcherInstance, WorkerPool):
+            raise AttributeError("WorkerPool has already been created")
+        self.workerDefinitions = workers
+        self.workers = []
+        workerDispatcherInstance = self
+
+    def addWorker(self, worker):
+        self.workerDefinitions.append(worker)
+
+    def start(self):
+        for workerDefinition in self.workerDefinitions:
+            worker = WorkerProxy(host=workerDefinition["host"], port=workerDefinition["port"])
+            self.workers.append(worker)
+            worker.startClient()
+
+    def createRemote(self, clsName, requiredResources, *args, **kwargs):
+        #requiredResources
+        return self.workers[0].createRemote(clsName, *args, **kwargs)

@@ -7,11 +7,11 @@ import rpc.RemoteProxy
 from rpc.RemoteInvoke import RemoteCreate, RemoteInvoke, RemoteReturn
 
 
-def start(*args, **kwargs):
-    server = Worker(*args, **kwargs)
-    print("starting server")
-    server.startServer()
-    return server
+def start(settingsDictionary):
+    worker = Worker(settingsDictionary)
+    print("starting worker")
+    worker.start()
+    return worker
 
 
 class Worker(object):
@@ -19,20 +19,22 @@ class Worker(object):
 
     def __new__(cls, *args, **kwargs):
         if not isinstance(cls._instance, cls):
-            cls._instance = object.__new__(cls, *args, **kwargs)
+            cls._instance = object.__new__(cls)
         return cls._instance
 
-    def __init__(self, *args, **kwargs):
-        self.serversocket = None
+    def __init__(self, settings):
+        self.serverSocket = None
+        self.port = settings["port"]
+        self.maxResources = settings["resources"]
 
 
-    def startServer(self):
-        serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        serversocket.bind(("localhost", 37373))
-        serversocket.listen(5)
+    def start(self):
+        serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        serverSocket.bind(("localhost", self.port))#socket.gethostname()
+        serverSocket.listen(5)
 
         while True:
-            (clientSocket, address) = serversocket.accept()
+            (clientSocket, address) = serverSocket.accept()
             ct = WorkerThread(clientSocket)
             ct.run()
 

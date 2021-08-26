@@ -6,10 +6,10 @@ from rpc import WorkerDispatcher
 is_worker = False
 
 
-def remote(ctor):
+def remote(ctor, resources={"gpu": 1}):
     if is_worker:
         return ctor
-    return RemoteProxy(ctor)
+    return RemoteProxy(ctor, resources)
 
 
 def method(fn):
@@ -20,11 +20,12 @@ def method(fn):
 
 class RemoteProxy(object):
 
-    def __init__(self, ctor, *args, **kwargs):
+    def __init__(self, ctor, requiredResources, *args, **kwargs):
         self.ctor = ctor
         self.args = args
         self.kwargs = kwargs
         self.remoteInstanceHandle = None
+        self.requiredResources = requiredResources
 
     def __getattr__(self, method):
         fn = self.ctor.__dict__[method]
@@ -47,7 +48,7 @@ class RemoteProxy(object):
         else:
             clsName = module + '.' + klass.__qualname__
 
-        self.remoteInstanceHandle = WorkerDispatcher.createRemote(clsName, *args, **kwargs)
+        self.remoteInstanceHandle = WorkerDispatcher.createRemote(clsName, self.requiredResources, *args, **kwargs)
         return self
 
 
