@@ -7,13 +7,13 @@ from rpc.RemoteInvoke import RemoteCreate, RemoteInvoke, RemoteReturn
 
 
 def start(*args, **kwargs):
-    server = Server(*args, **kwargs)
+    server = Worker(*args, **kwargs)
     print("starting server")
     server.startServer()
     return server
 
 
-class Server(object):
+class Worker(object):
     _instance = None
 
     def __new__(cls, *args, **kwargs):
@@ -39,10 +39,10 @@ class Server(object):
             (clientsocket, address) = serversocket.accept()
             # now do something with the clientsocket
             # in this case, we'll pretend this is a threaded server
-            ct = ServerThread(clientsocket)
+            ct = WorkerThread(clientsocket)
             ct.run()
 
-class ServerThread (threading.Thread):
+class WorkerThread (threading.Thread):
     def __init__(self, clientsocket):
         threading.Thread.__init__(self)
         self.clientsocket = clientsocket

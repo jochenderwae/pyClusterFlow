@@ -1,7 +1,7 @@
-from rpc import Client
+from rpc import WorkerDispatcher
 from TestClass import TestClass
 
-Client.start()
+WorkerDispatcher.start()
 
 
 test = TestClass()

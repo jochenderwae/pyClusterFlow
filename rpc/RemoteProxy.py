@@ -1,7 +1,7 @@
 import functools
 import inspect
 
-from rpc import Client
+from rpc import WorkerDispatcher
 
 is_worker = False
 
@@ -50,7 +50,7 @@ class RemoteProxy(object):
         else:
             clsName = module + '.' + klass.__qualname__
 
-        self.remoteInstanceHandle = Client.createRemote(clsName, *args, **kwargs)
+        self.remoteInstanceHandle = WorkerDispatcher.createRemote(clsName, *args, **kwargs)
         print(self.remoteInstanceHandle)
         return self
 

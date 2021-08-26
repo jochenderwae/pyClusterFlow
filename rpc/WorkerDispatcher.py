@@ -6,21 +6,21 @@ from rpc.RemoteInvoke import RemoteCreate
 
 
 def start(*args, **kwargs):
-    client = Client(*args, **kwargs)
+    client = WorkerProxy(*args, **kwargs)
     client.startClient()
     return client
 
 def createRemote(clsName, *args, **kwargs):
-    if not isinstance(Client._instance, Client):
+    if not isinstance(WorkerProxy._instance, WorkerProxy):
         raise AttributeError("Client needs to be started first")
-    return Client._instance.createRemote(clsName, args, kwargs)
+    return WorkerProxy._instance.createRemote(clsName, args, kwargs)
 
 def doRemote(method_name, args, kwargs):
-    if not isinstance(Client._instance, Client):
+    if not isinstance(WorkerProxy._instance, WorkerProxy):
         raise AttributeError("Client needs to be started first")
-    Client._instance.doRemote(method_name, args, kwargs)
+    WorkerProxy._instance.doRemote(method_name, args, kwargs)
 
-class Client(object):
+class WorkerProxy(object):
     _instance = None
 
     def __new__(cls, *args, **kwargs):
