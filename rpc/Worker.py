@@ -2,9 +2,17 @@ import pickle
 import threading
 import socket
 from importlib import import_module
+from enum import Enum
 
-import rpc.RemoteProxy
-from rpc.RemoteInvoke import RemoteCreate, RemoteInvoke, RemoteReturn
+from rpc.RemoteInvoke import RemoteCreate, RemoteInvoke, RemoteReturn, IllegalWorkerStateException, \
+    UnknownMethodException, UnknownClassException, ResourcesNotAvailableException, RemoteRelease
+
+
+class WorkerThreadState(Enum):
+    CREATED = 0
+    STARTED = 1
+    RUNNING = 2
+    ENDED = 3
 
 
 def start(settingsDictionary):
@@ -47,7 +55,7 @@ class Worker(object):
         reservedResources = []
         for resourceName in requiredResources:
             if resourceName not in self.resources or len(self.resources[resourceName]) == 0:
-                raise AttributeError("Resource \"{}\" not available".format(resourceName))
+                raise ResourcesNotAvailableException("Resource \"{}\" not available".format(resourceName))
 
         for resourceName in requiredResources:
             for n in range(requiredResources[resourceName]):
@@ -56,51 +64,94 @@ class Worker(object):
         return reservedResources
 
     def releaseResources(self, reservedResources):
+        if reservedResources is None:
+            return
         for resourceName in reservedResources:
             self.resources[resourceName].append(resourceName)
-
 
 
 class WorkerThread(threading.Thread):
     def __init__(self, worker, clientSocket):
         threading.Thread.__init__(self)
         self.clientSocket = clientSocket
-        self.nextObjectId = 0
-        self.objectCache = {}
         self.worker = worker
+        self.className = ""
+        self.instance = None
+        self.reservedResources = None
+        self.state = None
 
     def run(self):
+        self.state = WorkerThreadState.CREATED
         try:
             while True:
                 data = self.read()
                 command = pickle.loads(data)
-                response = None
+                response = self.handleCommand(command)
 
-                if isinstance(command, RemoteCreate):
-                    try:
-                        reservedResources = self.worker.reserveResources(command.requiredResources)
-                        module_path, class_name = command.clsName.rsplit('.', 1)
-                        module = import_module(module_path)
-                        cls = getattr(module, class_name)
-                        instance = cls()
-                        self.objectCache[self.nextObjectId] = instance
-                        response = RemoteReturn(self.nextObjectId, "constructor", None, None)
-                        self.nextObjectId += 1
+                if response is None:
+                    response = RemoteReturn("constructor", None,
+                                            IllegalWorkerStateException("Call resulted in an empty response"))
 
-                    except BaseException as e:
-                        response = RemoteReturn(-1, "constructor", None, e)
+                data = pickle.dumps(response)
+                self.send(data)
 
-                if isinstance(command, RemoteInvoke):
-                    instance = self.objectCache[command.remoteInstanceId]
-                    method = getattr(instance, command.method)
-                    returnValue = method(*command.args, **command.kwargs)
-                    response = RemoteReturn(command.remoteInstanceId, command.method, returnValue, None)
-
-                if response is not None:
-                    data = pickle.dumps(response)
-                    self.send(data)
         except RuntimeError:
             print("socket closed")
+
+        self.state = WorkerThreadState.ENDED
+        self.worker.releaseResources(self.reservedResources)
+
+    def handleCommand(self, command):
+        try:
+            if isinstance(command, RemoteCreate):
+                if self.state is not WorkerThreadState.CREATED:
+                    raise IllegalWorkerStateException(
+                        "Worker needs to be in the state CREATED when sending a constructor. State was {} instead".format(
+                            self.state))
+
+                self.reservedResources = self.worker.reserveResources(command.requiredResources)
+                self.className = command.clsName
+                modulePath, className = self.className.rsplit('.', 1)
+                module = import_module(modulePath)
+                if module is None:
+                    raise UnknownClassException("Package {} not found".format(modulePath))
+                cls = getattr(module, className)
+                if cls is None:
+                    raise UnknownClassException("Class {} not found in package {}".format(className, modulePath))
+                self.instance = cls()
+                self.state = WorkerThreadState.STARTED
+                return RemoteReturn("constructor", None, None)
+
+            if isinstance(command, RemoteInvoke):
+                if self.state is not WorkerThreadState.STARTED:
+                    raise IllegalWorkerStateException(
+                        "Worker needs to be in the state STARTED when sending a method call. State was {} instead".format(
+                            self.state))
+                self.state = WorkerThreadState.RUNNING
+                method = getattr(self.instance, command.method)
+                if method is None:
+                    raise UnknownMethodException("Method {} not found in {}".format(command.method, self.className))
+                returnValue = method(*command.args, **command.kwargs)
+                self.state = WorkerThreadState.STARTED
+                return RemoteReturn(command.method, returnValue, None)
+
+            if isinstance(command, RemoteRelease):
+                if self.state is not WorkerThreadState.STARTED and self.state is not WorkerThreadState.CREATED:
+                    raise IllegalWorkerStateException(
+                        "Worker needs to be in the state STARTED or CREATED when sending a remote release. State was {} instead".format(
+                            self.state))
+
+                # instance destructor?
+                self.instance = None
+                self.state = WorkerThreadState.ENDED
+                self.worker.releaseResources(self.reservedResources)
+                self.className = ""
+                return RemoteReturn("release", None, None)
+
+        except BaseException as e:
+            return RemoteReturn("constructor", None, e)
+
+        return None
 
     def send(self, msg):
         sent = self.clientSocket.send(msg)

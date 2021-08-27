@@ -6,6 +6,7 @@ from rpc.RemoteInvoke import RemoteCreate
 
 workerDispatcherInstance = None
 
+
 def createRemote(clsName, requiredResources, *args, **kwargs):
     if not isinstance(workerDispatcherInstance, WorkerPool):
         raise AttributeError("Client needs to be started first")
@@ -43,17 +44,16 @@ class WorkerProxy(object):
         obj = pickle.loads(data)
         if obj.exception is not None:
             return None
-        remote = RemoteClass(self, obj)
+        remote = RemoteClass(self)
         return remote
 
 
 class RemoteClass:
-    def __init__(self, client, remoteReturn):
+    def __init__(self, client):
         self.client = client
-        self.remoteInstanceId = remoteReturn.remoteInstanceId
 
     def call(self, method, *args, **kwargs):
-        remoteInvoke = RemoteInvoke(self.remoteInstanceId, method, args, kwargs)
+        remoteInvoke = RemoteInvoke(method, args, kwargs)
         data = pickle.dumps(remoteInvoke)
         self.client.send(data)
         data = self.client.read()

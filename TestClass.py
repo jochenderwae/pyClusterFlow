@@ -5,9 +5,8 @@ from rpc import RemoteProxy
 class TestClass(object):
 
     @RemoteProxy.method
-    def remote_method(self):
-        print("remote_method, self: {}".format(self))
-        return "Method called correctly"
+    def remote_method(self, param):
+        return "Method called correctly (param: {})".format(param)
 
     def local_method(self):
         print("you can only get here through another method")
