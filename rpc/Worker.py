@@ -95,7 +95,7 @@ class WorkerThread(threading.Thread):
                 data = pickle.dumps(response)
                 self.send(data)
 
-        except RuntimeError:
+        except (RuntimeError, ConnectionResetError):
             print("socket closed")
 
         self.state = WorkerThreadState.ENDED

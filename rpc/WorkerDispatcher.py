@@ -1,7 +1,7 @@
 import pickle
 import socket
 
-from rpc.RemoteInvoke import RemoteInvoke
+from rpc.RemoteInvoke import RemoteInvoke, RemoteRelease
 from rpc.RemoteInvoke import RemoteCreate
 
 workerDispatcherInstance = None
@@ -14,9 +14,9 @@ def createRemote(clsName, requiredResources, *args, **kwargs):
 
 
 class WorkerProxy(object):
-
-    def __init__(self, host=socket.gethostname(), port=37373):
+    def __init__(self, pool, host=socket.gethostname(), port=37373):
         self.socket = None
+        self.pool = pool
         self.host = host
         self.port = port
 
@@ -44,21 +44,27 @@ class WorkerProxy(object):
         obj = pickle.loads(data)
         if obj.exception is not None:
             return None
-        remote = RemoteClass(self)
-        return remote
-
-
-class RemoteClass:
-    def __init__(self, client):
-        self.client = client
+        return self
 
     def call(self, method, *args, **kwargs):
         remoteInvoke = RemoteInvoke(method, args, kwargs)
         data = pickle.dumps(remoteInvoke)
-        self.client.send(data)
-        data = self.client.read()
+        self.send(data)
+        data = self.read()
         obj = pickle.loads(data)
         return obj.returnValue
+
+    def release(self):
+        if self.socket is None:
+            return
+        remoteInvoke = RemoteRelease()
+        data = pickle.dumps(remoteInvoke)
+        self.send(data)
+        data = self.read()
+        obj = pickle.loads(data)
+        self.socket.close()
+        self.socket = None
+        self.pool.removeRemote(self)
 
 
 class WorkerPool:
@@ -68,6 +74,7 @@ class WorkerPool:
             raise AttributeError("WorkerPool has already been created")
         self.workerDefinitions = workers
         self.workers = []
+        self.remoteInstances = []
         workerDispatcherInstance = self
 
     def addWorker(self, worker):
@@ -75,14 +82,22 @@ class WorkerPool:
 
     def start(self):
         for workerDefinition in self.workerDefinitions:
-            worker = WorkerProxy(host=workerDefinition["host"], port=workerDefinition["port"])
+            worker = WorkerProxy(self, host=workerDefinition["host"], port=workerDefinition["port"])
             self.workers.append(worker)
             worker.startClient()
+
+    def stop(self):
+        for instance in self.remoteInstances:
+            instance.release()
 
     def createRemote(self, clsName, requiredResources, *args, **kwargs):
         for remoteWorker in self.workers:
             remoteInstance = remoteWorker.createRemote(clsName, requiredResources, *args, **kwargs)
             if remoteInstance is not None:
+                self.remoteInstances.append(remoteInstance)
                 return remoteInstance
 
         raise AttributeError("No matching worker found")
+
+    def removeRemote(self, remote):
+        self.remoteInstances.remove(remote)

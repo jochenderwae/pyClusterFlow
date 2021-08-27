@@ -51,6 +51,10 @@ class RemoteProxy(object):
         self.remoteInstanceHandle = WorkerDispatcher.createRemote(clsName, self.requiredResources, *args, **kwargs)
         return self
 
+    def __del__(self):
+        if self.remoteInstanceHandle is not None:
+            self.remoteInstanceHandle.release()
+        self.remoteInstanceHandle = None
 
 def remote_method(self):
     pass

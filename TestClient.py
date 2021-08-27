@@ -28,3 +28,6 @@ try:
     test.local_method()
 except AttributeError:
     pass
+
+test = None
+pool.stop()
