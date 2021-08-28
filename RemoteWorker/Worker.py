@@ -4,7 +4,7 @@ import socket
 from importlib import import_module
 from enum import Enum
 
-from rpc.RemoteInvoke import RemoteCreate, RemoteInvoke, RemoteReturn, IllegalWorkerStateException, \
+from RemoteWorker.RemoteInvoke import RemoteCreate, RemoteInvoke, RemoteReturn, IllegalWorkerStateException, \
     UnknownMethodException, UnknownClassException, ResourcesNotAvailableException, RemoteRelease
 
 

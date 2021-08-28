@@ -1,8 +1,8 @@
 import socket
 
-from rpc import WorkerDispatcher
+from RemoteWorker import WorkerDispatcher
 from TestClass import TestClass
-from rpc.WorkerDispatcher import WorkerPool
+from RemoteWorker.WorkerDispatcher import WorkerPool
 
 hostname = socket.gethostname()
 hostname = "localhost"

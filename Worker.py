@@ -2,8 +2,8 @@ import os
 import sys
 import json
 
-from rpc import Worker
-from rpc import RemoteProxy
+from RemoteWorker import Worker
+from RemoteWorker import RemoteProxy
 
 RemoteProxy.is_worker = True
 

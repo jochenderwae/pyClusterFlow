@@ -4,8 +4,8 @@ import socket
 import paramiko
 from scp import SCPClient
 
-from rpc.RemoteInvoke import RemoteInvoke, RemoteRelease
-from rpc.RemoteInvoke import RemoteCreate
+from RemoteWorker.RemoteInvoke import RemoteInvoke, RemoteRelease
+from RemoteWorker.RemoteInvoke import RemoteCreate
 
 workerDispatcherInstance = None
 

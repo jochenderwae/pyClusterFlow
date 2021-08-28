@@ -1,4 +1,4 @@
-from rpc import RemoteProxy
+from RemoteWorker import RemoteProxy
 
 
 @RemoteProxy.remote
