@@ -2,8 +2,8 @@ import os
 import sys
 import json
 
-from RemoteWorker import Worker
-from RemoteWorker import RemoteProxy
+from remoteWorker import Worker
+from remoteWorker import RemoteProxy
 
 RemoteProxy.is_worker = True
 

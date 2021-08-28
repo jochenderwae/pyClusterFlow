@@ -1,7 +1,7 @@
 import functools
 import inspect
 
-from RemoteWorker import WorkerDispatcher
+from remoteWorker import WorkerDispatcher
 
 is_worker = False
 
