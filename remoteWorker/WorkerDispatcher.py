@@ -1,13 +1,31 @@
+import glob
 import pickle
 import socket
 
 import paramiko
 from scp import SCPClient
+from pathlib import Path
 
 from remoteWorker.RemoteInvoke import RemoteInvoke, RemoteRelease
 from remoteWorker.RemoteInvoke import RemoteCreate
 
 workerDispatcherInstance = None
+
+workerFiles = [
+    "setup.py",
+    "Worker.py",
+    "TestClass.py",
+    "remoteWorker/*.py"
+]
+
+localFiles = []
+for path in workerFiles:
+    localFiles += glob.glob(path)
+_localFiles = []
+for path in localFiles:
+    _localFiles.append(Path(path).resolve())
+localFiles = _localFiles
+print(localFiles)
 
 
 def createRemote(clsName, requiredResources, *args, **kwargs):
