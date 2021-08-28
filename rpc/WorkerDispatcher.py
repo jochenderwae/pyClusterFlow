@@ -1,6 +1,9 @@
 import pickle
 import socket
 
+import paramiko
+from scp import SCPClient
+
 from rpc.RemoteInvoke import RemoteInvoke, RemoteRelease
 from rpc.RemoteInvoke import RemoteCreate
 
@@ -19,8 +22,26 @@ class WorkerProxy(object):
         self.pool = pool
         self.host = host
         self.port = port
+        self.ssh = None
 
-    def startClient(self):
+    def _initiateSSH(self):
+        if self.ssh is None:
+            self.ssh = paramiko.SSHClient()
+            self.ssh.connect(self.host)
+
+    def install(self):
+        self._initiateSSH()
+        scp = SCPClient(self.ssh.get_transport())
+        files = []
+        remote_path = ""
+        scp.put(files, remote_path=remote_path)
+
+    def startWorker(self):
+        self._initiateSSH()
+        ssh_stdin, ssh_stdout, ssh_stderr = self.ssh.exec_command("./Worker.py")
+        # disown -h %1
+
+    def openConnection(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         print("connecting to {}:{}".format(self.host, self.port))
         self.socket.connect((self.host, self.port))
@@ -36,7 +57,7 @@ class WorkerProxy(object):
             raise RuntimeError("socket connection broken")
         return data
 
-    def createRemote(self, clsName, requiredResources, *args, **kwargs):
+    def createInstance(self, clsName, requiredResources, *args, **kwargs):
         remoteInvoke = RemoteCreate(clsName, requiredResources, *args, **kwargs)
         data = pickle.dumps(remoteInvoke)
         self.send(data)
@@ -72,10 +93,11 @@ class WorkerPool:
         global workerDispatcherInstance
         if isinstance(workerDispatcherInstance, WorkerPool):
             raise AttributeError("WorkerPool has already been created")
+        workerDispatcherInstance = self
+
         self.workerDefinitions = workers
         self.workers = []
         self.remoteInstances = []
-        workerDispatcherInstance = self
 
     def addWorker(self, worker):
         self.workerDefinitions.append(worker)
@@ -84,7 +106,7 @@ class WorkerPool:
         for workerDefinition in self.workerDefinitions:
             worker = WorkerProxy(self, host=workerDefinition["host"], port=workerDefinition["port"])
             self.workers.append(worker)
-            worker.startClient()
+            worker.openConnection()
 
     def stop(self):
         for instance in self.remoteInstances:
@@ -92,7 +114,7 @@ class WorkerPool:
 
     def createRemote(self, clsName, requiredResources, *args, **kwargs):
         for remoteWorker in self.workers:
-            remoteInstance = remoteWorker.createRemote(clsName, requiredResources, *args, **kwargs)
+            remoteInstance = remoteWorker.createInstance(clsName, requiredResources, *args, **kwargs)
             if remoteInstance is not None:
                 self.remoteInstances.append(remoteInstance)
                 return remoteInstance
