@@ -11,27 +11,63 @@ from remoteWorker.RemoteInvoke import RemoteCreate
 
 workerDispatcherInstance = None
 
-workerFiles = [
-    "setup.py",
-    "Worker.py",
-    "TestClass.py",
-    "remoteWorker/*.py"
-]
-
-localFiles = []
-for path in workerFiles:
-    localFiles += glob.glob(path)
-_localFiles = []
-for path in localFiles:
-    _localFiles.append(Path(path).resolve())
-localFiles = _localFiles
-print(localFiles)
-
 
 def createRemote(clsName, requiredResources, *args, **kwargs):
     if not isinstance(workerDispatcherInstance, WorkerPool):
         raise AttributeError("Client needs to be started first")
     return workerDispatcherInstance.createRemote(clsName, requiredResources, *args, **kwargs)
+
+
+class FileTools:
+    workerFiles = [
+        "setup.py",
+        "Worker.py",
+        "TestClass.py",
+        "remoteWorker/*.py"
+    ]
+
+    def __init__(self):
+        self.fileList = FileTools.workerFiles
+
+    def expandWildcards(self):
+        expandedFiles = []
+        for path in self.fileList:
+            expandedFiles += glob.glob(path)
+        self.fileList = expandedFiles
+        return self
+
+    def resolveLocalFiles(self):
+        resolvedFiles = []
+        for path in self.fileList:
+            resolvedFiles.append(Path(path).resolve())
+        self.fileList = resolvedFiles
+        return self
+
+    def resolveRemoteFiles(self):
+        resolvedFiles = []
+        for path in self.fileList:
+            resolvedFiles.append((Path("/srv/worker") / path).resolve())
+        self.fileList = resolvedFiles
+        return self
+
+    def addConfigurationFile(self, hostname):
+        configFile = hostname + ".Config.json"
+        self.fileList.append(configFile)
+        return self
+
+    def __repr__(self):
+        return self.fileList.__repr__()
+
+    def __str__(self):
+        return self.fileList.__str__()
+
+
+hostname = "piworker1"
+remoteFiles = FileTools()
+print(remoteFiles.addConfigurationFile(hostname).expandWildcards().resolveRemoteFiles())
+
+localFiles = FileTools()
+print(localFiles.addConfigurationFile(hostname).expandWildcards().resolveLocalFiles())
 
 
 class WorkerProxy(object):
