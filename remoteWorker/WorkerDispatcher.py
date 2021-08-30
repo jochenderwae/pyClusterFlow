@@ -1,6 +1,8 @@
 import glob
 import pickle
 import socket
+import threading
+import time
 
 import paramiko
 from scp import SCPClient
@@ -74,6 +76,8 @@ class WorkerProxy(object):
         self.port = port
         self.ssh = None
         self.workingDirectory = "/srv/worker"
+        self.ssh_stdout = None
+        self.ssh_stderr = None
 
     def _initiateSSH(self):
         if self.ssh is None:
@@ -105,12 +109,25 @@ class WorkerProxy(object):
 
     def startWorker(self):
         self._initiateSSH()
-        ssh_stdin, ssh_stdout, ssh_stderr = self.ssh.exec_command("cd {} && bash workerSetup.sh".format(self.workingDirectory))
-        for line in iter(ssh_stderr.readline, ""):
-            print(line, end="")
-        ssh_stdin, ssh_stdout, ssh_stderr = self.ssh.exec_command("cd {} && python3 Worker.py".format(self.workingDirectory))#, get_pty=True)
-        for line in iter(ssh_stderr.readline, ""):
-            print(line, end="")
+        self.ssh.exec_command("cd {} && bash workerSetup.sh".format(self.workingDirectory))
+        print("starting worker")
+        ssh_stdin, ssh_stdout, ssh_stderr = self.ssh.exec_command(
+            "cd {} && source ./worker_venv/bin/activate && python3 Worker.py piworker1.Config.json".format(self.workingDirectory), get_pty=True)
+
+        def outputter():
+            while not ssh_stdout.channel.exit_status_ready():
+                if ssh_stdout.channel.recv_ready():
+                    for line in ssh_stdout.readlines():
+                        print(line)
+                if ssh_stderr.channel.recv_ready():
+                    for line in ssh_stderr.readlines():
+                        print(line)
+
+        x = threading.Thread(target=outputter)
+        x.start()
+        print("worker started")
+
+        time.sleep(60)
 
     def openConnection(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -170,17 +187,21 @@ class WorkerPool:
         self.workers = []
         self.remoteInstances = []
 
+        for workerDefinition in self.workerDefinitions:
+            worker = WorkerProxy(self, host=workerDefinition["host"], port=workerDefinition["port"])
+            self.workers.append(worker)
+
     def getWorkers(self):
         return self.workers
 
     def addWorker(self, worker):
         self.workerDefinitions.append(worker)
+        worker = WorkerProxy(self, host=worker["host"], port=worker["port"])
+        self.workers.append(worker)
 
     def start(self):
-        for workerDefinition in self.workerDefinitions:
-            worker = WorkerProxy(self, host=workerDefinition["host"], port=workerDefinition["port"])
-            self.workers.append(worker)
-            #worker.openConnection()
+        for worker in self.workers:
+            worker.openConnection()
 
     def stop(self):
         for instance in self.remoteInstances:

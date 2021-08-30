@@ -43,7 +43,7 @@ class Worker(object):
 
     def start(self):
         serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        serverSocket.bind(("localhost", self.port))  # socket.gethostname()
+        serverSocket.bind(("0.0.0.0", self.port))
         serverSocket.listen(5)
 
         while True:
