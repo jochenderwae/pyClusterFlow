@@ -18,40 +18,44 @@ def createRemote(clsName, requiredResources, *args, **kwargs):
     return workerDispatcherInstance.createRemote(clsName, requiredResources, *args, **kwargs)
 
 
-class FileTools:
+class FileSet:
     workerFiles = [
+        "workerSetup.sh",
         "setup.py",
         "Worker.py",
         "TestClass.py",
         "remoteWorker/*.py"
     ]
 
-    def __init__(self):
-        self.fileList = FileTools.workerFiles
+    def __init__(self, workingDirectory, hostname):
+        self.fileList = FileSet.workerFiles
+        self.hostname = hostname
+        self.workingDirectory = workingDirectory
+        self._addConfigurationFile()
+        self._expandWildcards()
+        self._resolveFiles()
 
-    def expandWildcards(self):
+    def getFileList(self):
+        return self.fileList
+
+    def _expandWildcards(self):
         expandedFiles = []
         for path in self.fileList:
             expandedFiles += glob.glob(path)
         self.fileList = expandedFiles
         return self
 
-    def resolveLocalFiles(self):
+    def _resolveFiles(self):
         resolvedFiles = []
         for path in self.fileList:
-            resolvedFiles.append(Path(path).resolve())
+            localFile = Path(path).resolve()
+            remoteFile = (Path(self.workingDirectory) / path).resolve()
+            resolvedFiles.append((localFile, remoteFile))
         self.fileList = resolvedFiles
         return self
 
-    def resolveRemoteFiles(self):
-        resolvedFiles = []
-        for path in self.fileList:
-            resolvedFiles.append((Path("/srv/worker") / path).resolve())
-        self.fileList = resolvedFiles
-        return self
-
-    def addConfigurationFile(self, hostname):
-        configFile = hostname + ".Config.json"
+    def _addConfigurationFile(self):
+        configFile = self.hostname + ".Config.json"
         self.fileList.append(configFile)
         return self
 
@@ -62,14 +66,6 @@ class FileTools:
         return self.fileList.__str__()
 
 
-hostname = "piworker1"
-remoteFiles = FileTools()
-print(remoteFiles.addConfigurationFile(hostname).expandWildcards().resolveRemoteFiles())
-
-localFiles = FileTools()
-print(localFiles.addConfigurationFile(hostname).expandWildcards().resolveLocalFiles())
-
-
 class WorkerProxy(object):
     def __init__(self, pool, host=socket.gethostname(), port=37373):
         self.socket = None
@@ -77,23 +73,44 @@ class WorkerProxy(object):
         self.host = host
         self.port = port
         self.ssh = None
+        self.workingDirectory = "/srv/worker"
 
     def _initiateSSH(self):
         if self.ssh is None:
             self.ssh = paramiko.SSHClient()
+            self.ssh.load_system_host_keys()
+            self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             self.ssh.connect(self.host)
 
     def install(self):
+        fileSet = FileSet(self.workingDirectory, self.host)
         self._initiateSSH()
+
+        directories = []
+        for (localPath, remotePath) in fileSet.getFileList():
+            directories.append(remotePath.parent)
+        directories = list(set(directories))
+
+        ssh_stdin, ssh_stdout, ssh_stderr = self.ssh.exec_command("sudo mkdir -p {}".format(self.workingDirectory))
+        ssh_stdin, ssh_stdout, ssh_stderr = self.ssh.exec_command("sudo chmod a+rwx {}".format(self.workingDirectory))
+        for directory in directories:
+            print("mkdir -p {}".format(str(directory)))
+            ssh_stdin, ssh_stdout, ssh_stderr = self.ssh.exec_command("mkdir -p {}".format(str(directory)))
+            for line in iter(ssh_stderr.readline, ""):
+                print(line, end="")
+
         scp = SCPClient(self.ssh.get_transport())
-        files = []
-        remote_path = ""
-        scp.put(files, remote_path=remote_path)
+        for (localPath, remotePath) in fileSet.getFileList():
+            scp.put(localPath, remote_path=str(remotePath))
 
     def startWorker(self):
         self._initiateSSH()
-        ssh_stdin, ssh_stdout, ssh_stderr = self.ssh.exec_command("./Worker.py")
-        # disown -h %1
+        ssh_stdin, ssh_stdout, ssh_stderr = self.ssh.exec_command("cd {} && bash workerSetup.sh".format(self.workingDirectory))
+        for line in iter(ssh_stderr.readline, ""):
+            print(line, end="")
+        ssh_stdin, ssh_stdout, ssh_stderr = self.ssh.exec_command("cd {} && python3 Worker.py".format(self.workingDirectory))#, get_pty=True)
+        for line in iter(ssh_stderr.readline, ""):
+            print(line, end="")
 
     def openConnection(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -153,6 +170,9 @@ class WorkerPool:
         self.workers = []
         self.remoteInstances = []
 
+    def getWorkers(self):
+        return self.workers
+
     def addWorker(self, worker):
         self.workerDefinitions.append(worker)
 
@@ -160,7 +180,7 @@ class WorkerPool:
         for workerDefinition in self.workerDefinitions:
             worker = WorkerProxy(self, host=workerDefinition["host"], port=workerDefinition["port"])
             self.workers.append(worker)
-            worker.openConnection()
+            #worker.openConnection()
 
     def stop(self):
         for instance in self.remoteInstances:

@@ -1,6 +1,7 @@
 {
   "resources": {
     "gpu": 2,
+    "tpu": 2,
     "cpu": 4
   },
   "port": 37373
