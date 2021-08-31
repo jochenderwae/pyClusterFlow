@@ -8,9 +8,9 @@ hostname = socket.gethostname()
 hostname = "localhost"
 
 workers = [
-    {"host": "piworker1", "port": 37373},
-    #{"host": hostname, "port": 37373},
-    #{"host": hostname, "port": 37374},
+    #{"host": "piworker1", "port": 37373},
+    {"host": hostname, "port": 37373},
+    {"host": hostname, "port": 37374},
     #    {"host": hostname, "port": 37375},
     #    {"host": hostname, "port": 37376},
 ]
@@ -18,8 +18,8 @@ pool = WorkerPool(workers=workers)
 # pool.addWorker({"host": hostname, "port": 37377})
 
 workers = pool.getWorkers()
-workers[0].install()
-workers[0].startWorker()
+#workers[0].install()
+#workers[0].startWorker()
 pool.start()
 
 test = TestClass()
