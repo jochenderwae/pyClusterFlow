@@ -21,8 +21,8 @@ pool = WorkerPool(workers=workers)
 workers = pool.getWorkers()
 #workers[0].install()
 #workers[0].startWorker()
-pool.start()
-
+#pool.start()
+'''
 test = TestClass()
 response = test.remote_method(1)
 print("remote_method (1) returned: {}".format(response))
@@ -36,7 +36,7 @@ except AttributeError:
     pass
 
 test = None
-
+'''
 import testApplication.main
 
 pool.stop()

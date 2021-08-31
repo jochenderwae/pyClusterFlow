@@ -48,8 +48,10 @@ class Worker(object):
 
         while True:
             (clientSocket, address) = serverSocket.accept()
+            print("Creating new WorkerThread")
             ct = WorkerThread(self, clientSocket)
             ct.run()
+            print("thread started")
 
     def reserveResources(self, requiredResources):
         reservedResources = []
@@ -85,6 +87,7 @@ class WorkerThread(threading.Thread):
         try:
             while True:
                 data = self.read()
+                print("data read")
                 command = pickle.loads(data)
                 response = self.handleCommand(command)
 
@@ -93,7 +96,9 @@ class WorkerThread(threading.Thread):
                                             IllegalWorkerStateException("Call resulted in an empty response"))
 
                 data = pickle.dumps(response)
+                print("send response")
                 self.send(data)
+                print("response sent")
 
         except (RuntimeError, ConnectionResetError):
             print("socket closed")

@@ -70,7 +70,6 @@ class FileSet:
 
 class WorkerProxy(object):
     def __init__(self, pool, host=socket.gethostname(), port=37373):
-        self.socket = None
         self.pool = pool
         self.host = host
         self.port = port
@@ -78,6 +77,8 @@ class WorkerProxy(object):
         self.workingDirectory = "/srv/worker"
         self.ssh_stdout = None
         self.ssh_stderr = None
+
+        self.instances = []
 
     def _initiateSSH(self):
         if self.ssh is None:
@@ -129,10 +130,25 @@ class WorkerProxy(object):
 
         time.sleep(60)
 
-    def openConnection(self):
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        print("connecting to {}:{}".format(self.host, self.port))
-        self.socket.connect((self.host, self.port))
+    def createInstance(self, clsName, requiredResources, *args, **kwargs):
+        try:
+            instanceProxy = InstanceProxy(self)
+            print(f"Creating object {clsName}")
+            instanceProxy.createInstance(clsName, requiredResources, *args, **kwargs)
+            print("object created")
+            self.instances.append(instanceProxy)
+            return instanceProxy
+        except Exception as e:
+            print(e)
+            return None
+
+    def removeInstance(self, instance):
+        self.instances.remove(instance)
+
+class InstanceProxy:
+    def __init__(self, workerProxy):
+        self.socket = None
+        self.workerProxy = workerProxy
 
     def send(self, msg):
         sent = self.socket.send(msg)
@@ -146,14 +162,22 @@ class WorkerProxy(object):
         return data
 
     def createInstance(self, clsName, requiredResources, *args, **kwargs):
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.connect((self.workerProxy.host, self.workerProxy.port))
+
         remoteInvoke = RemoteCreate(clsName, requiredResources, *args, **kwargs)
         data = pickle.dumps(remoteInvoke)
+        print("send data")
         self.send(data)
+        print("recv data")
         data = self.read()
+        print("data received")
         obj = pickle.loads(data)
+
         if obj.exception is not None:
-            return None
-        return self
+            self.socket.close()
+            self.socket = None
+            raise obj.exception
 
     def call(self, method, *args, **kwargs):
         remoteInvoke = RemoteInvoke(method, args, kwargs)
@@ -173,7 +197,7 @@ class WorkerProxy(object):
         obj = pickle.loads(data)
         self.socket.close()
         self.socket = None
-        self.pool.removeRemote(self)
+        self.workerProxy.removeInstance(self)
 
 
 class WorkerPool:
@@ -199,22 +223,23 @@ class WorkerPool:
         worker = WorkerProxy(self, host=worker["host"], port=worker["port"])
         self.workers.append(worker)
 
-    def start(self):
-        for worker in self.workers:
-            worker.openConnection()
+#    def start(self):
+#        for worker in self.workers:
+#            worker.openConnection()
 
     def stop(self):
         for instance in self.remoteInstances:
             instance.release()
 
     def createRemote(self, clsName, requiredResources, *args, **kwargs):
+        print("workers:{}".format(len(self.workers)))
         for remoteWorker in self.workers:
             remoteInstance = remoteWorker.createInstance(clsName, requiredResources, *args, **kwargs)
+            print(requiredResources)
+            print(remoteWorker.port)
+            print(remoteInstance)
             if remoteInstance is not None:
                 self.remoteInstances.append(remoteInstance)
                 return remoteInstance
 
         raise AttributeError("No matching worker found")
-
-    def removeRemote(self, remote):
-        self.remoteInstances.remove(remote)
