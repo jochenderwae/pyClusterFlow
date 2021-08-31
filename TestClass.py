@@ -1,7 +1,7 @@
 from remoteWorker import RemoteProxy
 
 
-@RemoteProxy.remote
+@RemoteProxy.remote(resources={"cpu": 1})
 class TestClass(object):
 
     @RemoteProxy.method

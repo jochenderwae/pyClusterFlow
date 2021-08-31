@@ -6,10 +6,12 @@ from remoteWorker import WorkerDispatcher
 is_worker = False
 
 
-def remote(ctor, resources={"tpu": 1}):
-    if is_worker:
-        return ctor
-    return RemoteProxy(ctor, resources)
+def remote(resources):
+    def decorator(ctor):
+        if is_worker:
+            return ctor
+        return RemoteProxy(ctor, resources)
+    return decorator
 
 
 def method(fn):

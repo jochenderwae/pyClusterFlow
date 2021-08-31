@@ -5,8 +5,6 @@ from TestClass import TestClass
 from remoteWorker.WorkerDispatcher import WorkerPool
 
 
-import testApplication.main
-
 hostname = socket.gethostname()
 hostname = "localhost"
 
@@ -38,4 +36,7 @@ except AttributeError:
     pass
 
 test = None
+
+import testApplication.main
+
 pool.stop()
