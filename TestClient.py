@@ -4,6 +4,9 @@ from remoteWorker import WorkerDispatcher
 from TestClass import TestClass
 from remoteWorker.WorkerDispatcher import WorkerPool
 
+
+import testApplication.main
+
 hostname = socket.gethostname()
 hostname = "localhost"
 

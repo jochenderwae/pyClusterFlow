@@ -6,7 +6,6 @@ from adhesive.execution.ExecutionMessageEvent import ExecutionMessageEvent
 from adhesive.execution.ExecutionTask import ExecutionTask
 from adhesive.execution.ExecutionUserTask import ExecutionUserTask
 from adhesive.graph.Process import Process
-from .AdhesiveLane import AdhesiveLane
 
 
 class AdhesiveProcess:

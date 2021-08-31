@@ -18,6 +18,11 @@ class ProcessNode(NamedItem):
         #if not parent_process:
         #    raise Exception(f"A process node ({self}) was created without an actual parent process.")
 
+        parent_process_name = "xxx"
+        if parent_process is not None:
+            parent_process_name = parent_process.name
+        print(f"node {name} , parent process {parent_process_name}")
+
         self.parent_process = parent_process
 
     @property

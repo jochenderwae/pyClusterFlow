@@ -4,7 +4,6 @@ from adhesive.execution import token_utils
 from adhesive.execution.ExecutionData import ExecutionData
 from adhesive.execution.ExecutionLaneId import ExecutionLaneId
 from adhesive.graph.ExecutableNode import ExecutableNode
-from adhesive.workspace.Workspace import Workspace
 
 T = TypeVar('T')
 
@@ -26,7 +25,6 @@ class ExecutionToken(Generic[T]):
                  execution_id: str,
                  token_id: str,
                  data: Optional[Dict],
-                 workspace: Optional[Workspace] = None,
                  lane: Optional[ExecutionLaneId] = None) -> None:
         self.task = task
         self.data: T = cast(T, ExecutionData(data))
@@ -38,8 +36,6 @@ class ExecutionToken(Generic[T]):
         # turn reads the task_name
         self.task_name = ""
 
-        # These are None until the task is assgined to a lane
-        self.workspace: Optional[Workspace] = workspace
         # The lane execution id is kept in case of clonning to allow
         # tracking from what lane dhis event came from.
         self.lane: Optional[ExecutionLaneId] = lane
@@ -55,7 +51,6 @@ class ExecutionToken(Generic[T]):
             execution_id=self.execution_id,
             token_id=self.token_id,   # FIXME: probably a new token?
             data=cast(ExecutionData, self.data).as_dict(),
-            workspace=self.workspace.clone() if self.workspace else None,
             lane=self.lane,
         )
 

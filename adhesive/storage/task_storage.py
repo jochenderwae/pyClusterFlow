@@ -17,12 +17,7 @@ def ensure_folder(item: Union['ExecutionToken', 'Workspace', 'ActiveEvent', str]
     return full_path
 
 
-def get_folder(item: Union['ExecutionToken', 'Workspace', 'ActiveEvent', str]) -> str:
-    if isinstance(item, Workspace):
-        return os.path.join(
-            config.current.temp_folder,
-            item.execution_id,
-            "workspace")
+def get_folder(item: Union['ExecutionToken', 'ActiveEvent', str]) -> str:
 
     if isinstance(item, ExecutionToken):
         return os.path.join(
@@ -54,5 +49,4 @@ def _get_loop(context: 'ExecutionToken') -> str:
 
 
 from adhesive.model.ActiveEvent import ActiveEvent
-from adhesive.workspace.Workspace import Workspace
 from adhesive.execution.ExecutionToken import ExecutionToken

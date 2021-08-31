@@ -50,7 +50,6 @@ from adhesive.graph.Process import Process
 from adhesive.execution.ExecutionTask import ExecutionTask
 from adhesive import config
 
-from adhesive.model import lane_controller
 from adhesive.model import loop_controller
 
 from adhesive.model.ActiveEventStateMachine import ActiveEventState
@@ -185,12 +184,9 @@ class ProcessExecutor:
         if adhesive.config.current.verify_mode:
             return ExecutionData(initial_data)
 
-        signal.signal(signal.SIGUSR1, self.print_state)
-        signal.signal(signal.SIGINT, self.kill_itself)
+        #signal.signal(signal.SIGUSR1, self.print_state)
+        #signal.signal(signal.SIGINT, self.kill_itself)
 
-        # since the workspaces are allocated by lanes, we need to ensure
-        # our default lane is existing.
-        lane_controller.ensure_default_lane(self.adhesive_process)
 
         LOG.info(f"Adhesive version: 1.5.0")
         LOG.info(f"Config: Pool size: {config.current.pool_size}")
@@ -418,8 +414,6 @@ class ProcessExecutor:
 
         LOG.debug(f"Register {event}")
 
-        lane_controller.allocate_workspace(self.adhesive_process, event)
-
         self.events[event.token_id] = event
 
         return event
@@ -429,8 +423,6 @@ class ProcessExecutor:
         if event.token_id not in self.events:
             raise Exception(f"{event} not found in events. Either the event was "
                             f"already terminated, either it was not registered.")
-
-        lane_controller.deallocate_workspace(self.adhesive_process, event)
 
         LOG.debug(f"Unregister {event}")
 
@@ -751,6 +743,9 @@ class ProcessExecutor:
             LOG.info(yellow("Run  ") + yellow(event.context.task_name, bold=True))
         except Exception as e:
             raise Exception(f"Failure on {event.context.task_name}", e)
+
+        #for attr in dir(event.context):
+        #    print("obj.%s = %r" % (attr, getattr(event.context, attr)))
 
         # When we start running, we must register now timer events against the
         # schedule

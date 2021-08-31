@@ -29,7 +29,8 @@ setup(
         "yamldict",
         "Pebble",
         "paramiko",
-        "scp"
+        "scp",
+        "windows-curses"
     ],
     packages=packages,
     package_data={

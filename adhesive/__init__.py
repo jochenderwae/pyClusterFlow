@@ -17,7 +17,6 @@ from adhesive.model.UiBuilderApi import UiBuilderApi
 from adhesive.process_read.bpmn import read_bpmn_file
 from adhesive.process_read.programmatic import generate_from_calls
 from adhesive.process_read.tasks import generate_from_tasks
-from adhesive.workspace.Workspace import Workspace
 
 T = TypeVar('T')
 V = TypeVar('V')
@@ -28,7 +27,6 @@ process = AdhesiveProcess('_root')
 UI = UiBuilderApi
 
 class Token(ExecutionToken[T]):
-    workspace: Workspace
     task: ProcessTask
 
 
@@ -56,7 +54,7 @@ _DecoratedCallbackFunction = Union[  # FIXME: this is terrible
     Callable[[Token[T], Callable[[Any], None], str, str, str, str], V],
 ]
 
-WorkspaceGenerator = Generator[Workspace, Workspace, None]
+WorkspaceGenerator = Generator[Any, Any, None]
 MessageGenerator = Generator[Any, Any, None]
 
 LaneFunction = _DecoratedFunction[T, WorkspaceGenerator]
