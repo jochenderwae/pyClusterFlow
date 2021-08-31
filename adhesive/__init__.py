@@ -3,7 +3,6 @@ from typing import Callable, TypeVar, Optional, Union, List, Generator, Any, cas
 
 from adhesive import config
 from adhesive.consoleui.ConsoleUserTaskProvider import ConsoleUserTaskProvider
-from adhesive.execution.ExecutionLane import ExecutionLane
 from adhesive.execution.ExecutionMessageCallbackEvent import ExecutionMessageCallbackEvent
 from adhesive.execution.ExecutionMessageEvent import ExecutionMessageEvent
 from adhesive.execution.ExecutionTask import ExecutionTask
@@ -67,7 +66,6 @@ def task(*task_names: str,
          re: Optional[Union[str, List[str]]] = None,
          loop: Optional[str] = None,
          when: Optional[str] = None,
-         lane: Optional[str] = None,
          deduplicate: Optional[str] = None,
          ) -> Callable[[_DecoratedFunction[T, None]], _DecoratedFunction[T, None]]:
     def wrapper_builder(f: _DecoratedFunction[T, None]) -> _DecoratedFunction[T, None]:
@@ -77,7 +75,6 @@ def task(*task_names: str,
             regex_expressions=re,
             loop=loop,
             when=when,
-            lane=lane,
             deduplicate=deduplicate,
         )
 
@@ -96,7 +93,6 @@ def usertask(*task_names: str,
              re: Optional[Union[str, List[str]]] = None,
              loop: Optional[str] = None,
              when: Optional[str] = None,
-             lane: Optional[str] = None,
              deduplicate: Optional[str] = None,
         ) -> Callable[[_DecoratedUiFunction[T, None]], _DecoratedUiFunction[T, None]]:
     def wrapper_builder(f: _DecoratedUiFunction[T, None]) -> _DecoratedUiFunction[T, None]:
@@ -106,7 +102,6 @@ def usertask(*task_names: str,
             regex_expressions=re,
             loop=loop,
             when=when,
-            lane=lane,
             deduplicate=deduplicate,
         )
         process.user_task_definitions.append(usertask)
@@ -115,25 +110,6 @@ def usertask(*task_names: str,
 
     return wrapper_builder
 
-
-def lane(*lane_names:str,
-         re: Optional[Union[str, List[str]]] = None,
-         ) -> Callable[[LaneFunction], WorkspaceGenerator]:
-    """
-    Allow defining a lane where a custom workspace will be created. This
-    function needs to yield a workspace that will be used. It's a
-    contextmanager. When all the execution tokens exit the lane, the code after
-    the yield will be executed.
-    """
-    def wrapper_builder(f: LaneFunction) -> WorkspaceGenerator:
-        newf: WorkspaceGenerator = cast(WorkspaceGenerator, contextmanager(f))
-        process.lane_definitions.append(ExecutionLane(
-            code=newf,  # type: ignore
-            expressions=lane_names,
-            regex_expressions=re))
-        return newf
-
-    return wrapper_builder
 
 
 def message(*message_names: str,

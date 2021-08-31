@@ -51,12 +51,6 @@ def display_unmatched_items(unmatched_items: Iterable[MatchableItem]) -> None:
             print("    pass\n\n")
             continue
 
-        if isinstance(unmatched_item, Lane):
-            print(f"@adhesive.lane({escape_string(unmatched_item.name)})")
-            print(f"def lane_{generate_task_name(unmatched_item.name)}(context: adhesive.Token) -> adhesive.WorkspaceGenerator:")
-            print("    yield context.workspace.clone()\n\n")
-            continue
-
         if isinstance(unmatched_item, MessageEvent):
             print(f"@adhesive.message({escape_string(unmatched_item.name)})")
             print(f"def message_{generate_task_name(unmatched_item.name)}(context: adhesive.Token):")

@@ -1,6 +1,5 @@
 from typing import List, Dict, Union
 
-from adhesive.execution.ExecutionLane import ExecutionLane
 from adhesive.execution.ExecutionMessageCallbackEvent import ExecutionMessageCallbackEvent
 from adhesive.execution.ExecutionMessageEvent import ExecutionMessageEvent
 from adhesive.execution.ExecutionTask import ExecutionTask
@@ -14,7 +13,6 @@ class AdhesiveProcess:
     the graph, and the steps.
     """
     def __init__(self, id: str) -> None:
-        self.lane_definitions: List[ExecutionLane] = []
         self.task_definitions: List[ExecutionTask] = []
         self.user_task_definitions: List[ExecutionUserTask] = []
         self.message_definitions: List[ExecutionMessageEvent] = []
@@ -24,5 +22,3 @@ class AdhesiveProcess:
 
         self.process: Process = Process(id=id)
 
-        # map from lane key, to actual lane
-        self.lanes: Dict[str, AdhesiveLane] = dict()

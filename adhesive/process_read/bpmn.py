@@ -104,9 +104,6 @@ def read_process(parent_process: Optional[Process], process) -> Process:
     for node in list(process):
         process_edge(result, node)
 
-    for node in list(process):
-        process_lane_set(result, node)
-
     for task_id, task in result.tasks.items():
         if not isinstance(task, ProcessTask):
             continue
@@ -175,63 +172,6 @@ def process_edge(result: Process,
 
     if "sequenceFlow" == node_name:
         process_node_sequence_flow(result, node)
-
-
-def process_lane_set(process: Process,
-                     result_set_node) -> None:
-    """ Read the lane set and create lane objects for the lane """
-    node_ns, node_name = parse_tag(result_set_node)
-
-    if "laneSet" != node_name:
-        return
-
-    for node in list(result_set_node):
-        node_ns, node_name = parse_tag(node)
-
-        if node_name in boundary_ignored_elements:
-            continue
-
-        if node_name == "lane":
-            process_lane(process, node)
-            continue
-
-        raise Exception(f"Unknown node <{node_name}> inside a <laneSet>.")
-
-
-def process_lane(process: Process,
-                 lane_node) -> None:
-    """ Create a lane object """
-    lane_node_ns, lane_node_name = parse_tag(lane_node)
-
-    lane = Lane(id=lane_node.get("id"),
-                name=lane_node.get("name"),
-                parent_process=process)
-
-    process.add_lane(lane)
-
-    for node in list(lane_node):
-        node_ns, node_name = parse_tag(node)
-
-        if node_name in boundary_ignored_elements:
-            continue
-
-        if node_name == "flowNodeRef":
-            process_lane_task(process, lane, node)
-            continue
-
-        raise Exception(f"Unknown node <{node_name}> inside a <{lane_node_name}>.")
-
-
-def process_lane_task(
-        process: Process,
-        lane: Lane,
-        xml_node
-    ) -> None:
-    """
-    Binds the task for the lane.
-    """
-    task_id = textwrap.dedent(xml_node.text)
-    process.add_task_to_lane(lane, task_id)
 
 
 def process_node_task(p: Process, xml_node) -> None:

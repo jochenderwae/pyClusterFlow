@@ -18,7 +18,6 @@ class ExecutionTask(ExecutionBaseTask):
                  regex_expressions: RegexList,
                  loop: Optional[str] = None,
                  when: Optional[str] = None,
-                 lane: Optional[str] = None,
                  deduplicate: Optional[str] = None,
              ) -> None:
         """
@@ -29,7 +28,6 @@ class ExecutionTask(ExecutionBaseTask):
         :param regex_expressions:
         :param loop:
         :param when:
-        :param lane:
         """
         if args:
             raise Exception("You need to pass in the arguments by name")
@@ -43,7 +41,6 @@ class ExecutionTask(ExecutionBaseTask):
 
         self.loop = loop
         self.when = when
-        self.lane = lane
 
     def invoke(
             self,

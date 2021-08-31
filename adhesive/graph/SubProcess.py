@@ -14,6 +14,3 @@ class SubProcess(ProcessTask, Process):
             name=name,
             parent_process=parent_process)
 
-    def get_lane_definition(self, task_id: str) -> Lane:
-        assert self.parent_process
-        return self.parent_process.get_lane_definition(self.id)

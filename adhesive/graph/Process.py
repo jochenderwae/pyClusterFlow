@@ -38,10 +38,6 @@ class Process(ExecutableNode):
         self._edges: Dict[str, Edge] = dict()
         self._end_events: Dict[str, Union[EndEvent, ProcessTask]] = dict()
 
-        self._task_lane_map: Dict[str, Lane] = dict()
-        self._default_lane = Lane(parent_process=self, id="root", name="default")
-
-        self._lanes: Dict[str, Lane] = dict()
         self._graph = nx.MultiDiGraph()
 
         self.error_task: Optional['ErrorBoundaryEvent'] = None
@@ -59,10 +55,6 @@ class Process(ExecutableNode):
         return self._tasks
 
     @property
-    def lanes(self) -> Dict[str, Lane]:
-        return self._lanes
-
-    @property
     def edges(self) -> Dict[str, Edge]:
         return self._edges
 
@@ -74,25 +66,6 @@ class Process(ExecutableNode):
         """ Add a task into the graph. """
         self._tasks[task.id] = task
         self._graph.add_node(task.id)
-
-    def add_lane(self, lane: Lane) -> None:
-        """
-        Add a lane definition.
-        """
-        self._lanes[lane.name] = lane
-
-    def add_task_to_lane(self, lane: Lane, task_id: str) -> None:
-        """
-        Assign a task to one of the lanes.
-        """
-        self._task_lane_map[task_id] = lane
-
-    def get_lane_definition(self, task_id: str) -> Lane:
-        """
-        Fetches the lane definition that was associated with this
-        task.
-        """
-        return self._task_lane_map.get(task_id, self._default_lane)
 
     def add_boundary_event(self, boundary_event: BoundaryEvent) -> None:
         self.add_task(boundary_event)

@@ -18,7 +18,6 @@ class ExecutionUserTask(ExecutionBaseTask):
                  regex_expressions: RegexList,
                  loop: Optional[str] = None,
                  when: Optional[str] = None,
-                 lane: Optional[str] = None,
                  deduplicate: Optional[str] = None,
             ) -> None:
         if args:
@@ -33,7 +32,6 @@ class ExecutionUserTask(ExecutionBaseTask):
 
         self.loop = loop
         self.when = when
-        self.lane = lane
 
     def invoke_usertask(
             self,

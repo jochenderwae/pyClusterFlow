@@ -6,7 +6,6 @@ from adhesive.execution.ExecutionUserTask import ExecutionUserTask
 from adhesive.execution.ExecutionTask import ExecutionTask
 from adhesive.graph.ProcessTask import ProcessTask
 from adhesive.execution.ExecutionMessageEvent import ExecutionMessageEvent
-from adhesive.execution.ExecutionLane import ExecutionLane
 from adhesive.execution.ExecutionMessageCallbackEvent import ExecutionMessageCallbackEvent
 
 from adhesive.execution import token_utils
@@ -88,15 +87,6 @@ def _validate_tasks(self: 'ProcessExecutor',
             adhesive_user_task.used = True
             continue
 
-    for lane_id, lane in process.lanes.items():
-        lane_definition = _match_lane(self, lane.name)
-
-        if not lane_definition:
-            unmatched_items[f"lane:{lane.name}"] = lane
-            continue
-
-        lane_definition.used = True
-
     for mevent_id, message_event in process.message_events.items():
         message_event_definition = _match_message_event(self, message_event.name)
 
@@ -114,15 +104,6 @@ def _validate_tasks(self: 'ProcessExecutor',
     if missing_dict is not None:  # we're not the root call, we're done
         return
 
-    # The default lane is not explicitly present in the process. If we have
-    # an implementation, we don't want to see it as an unused warning.
-    lane_definition = _match_lane(self, "default")
-    # if we don't have a definition, the lane_controller will dynamically add
-    # it.
-    # FIXME: probably it's better if the lane definition would be here.
-    if lane_definition:
-        lane_definition.used = True
-
     for task_definition in self.adhesive_process.task_definitions:
         if not task_definition.used:
             LOG.warning(f"Unused task: {task_definition}")
@@ -130,10 +111,6 @@ def _validate_tasks(self: 'ProcessExecutor',
     for user_task_definition in self.adhesive_process.user_task_definitions:
         if not user_task_definition.used:
             LOG.warning(f"Unused usertask: {user_task_definition}")
-
-    for lane_definition in self.adhesive_process.lane_definitions:
-        if not lane_definition.used:
-            LOG.warning(f"Unused lane: {lane_definition}")
 
     for execution_message_event in self.adhesive_process.message_definitions:
         if not execution_message_event.used:
@@ -160,14 +137,6 @@ def _match_user_task(self, task: ProcessTask) -> Optional[ExecutionUserTask]:
     for task_definition in self.adhesive_process.user_task_definitions:
         if token_utils.matches(task_definition.re_expressions, task.name) is not None:
             return task_definition
-
-    return None
-
-
-def _match_lane(self, lane_name: str) -> Optional[ExecutionLane]:
-    for lane_definition in self.adhesive_process.lane_definitions:
-        if token_utils.matches(lane_definition.re_expressions, lane_name) is not None:
-            return lane_definition
 
     return None
 

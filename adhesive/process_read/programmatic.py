@@ -59,21 +59,19 @@ class BranchEndBuilder:
     def task(self,
              name: str,
              when: Optional[str] = None,
-             loop: Optional[str] = None,
-             lane: Optional[str] = None) -> 'ProcessBuilder':
+             loop: Optional[str] = None) -> 'ProcessBuilder':
         """
         The branching is done now, we need to close a branch level.
         :param name:
         :param when:
         :param loop:
-        :param lane:
         :return:
         """
         new_task = Task(
             parent_process=self.process_builder.process,
             id=next_id(),
             name=name)
-        return self._wire_task_list(new_task, when=when, loop=loop, lane=lane)
+        return self._wire_task_list(new_task, when=when, loop=loop)
 
     def user_task(self, *args, **kw) -> 'ProcessBuilder':
         # FIXME: remove in version 1
@@ -84,8 +82,7 @@ class BranchEndBuilder:
     def usertask(self,
                   name: str,
                   when: Optional[str] = None,
-                  loop: Optional[str] = None,
-                  lane: Optional[str] = None) -> 'ProcessBuilder':
+                  loop: Optional[str] = None) -> 'ProcessBuilder':
         """
         The branching is done now, we need to close a branch level.
         :param name:
@@ -97,7 +94,7 @@ class BranchEndBuilder:
             parent_process=self.process_builder.process,
             id=next_id(),
             name=name)
-        return self._wire_task_list(new_task, when=when, loop=loop, lane=lane)
+        return self._wire_task_list(new_task, when=when, loop=loop)
 
     def sub_process_start(self, *args, **kw) -> 'ProcessBuilder':
         # FIXME: remove in version 1
@@ -108,8 +105,7 @@ class BranchEndBuilder:
     def subprocess_start(self,
                          name: Optional[str] = None,
                          when: Optional[str] = None,
-                         loop: Optional[str] = None,
-                         lane: Optional[str] = None) -> 'ProcessBuilder':
+                         loop: Optional[str] = None) -> 'ProcessBuilder':
         """
         We start a sub process.
         :param name:
@@ -122,18 +118,17 @@ class BranchEndBuilder:
 
         self._wire_task_list(cast(SubProcess, sub_process_builder.process),
                              when=when,
-                             loop=loop,
-                             lane=lane)
+                             loop=loop)
 
         return sub_process_builder
 
-    def process_end(self, lane: Optional[str] = None) -> 'ProcessBuilder':
+    def process_end(self) -> 'ProcessBuilder':
         new_task = EndEvent(
             parent_process=self.process_builder.process,
             id=next_id(),
             name="<end-event>")
 
-        return self._wire_task_list(new_task, lane=lane)
+        return self._wire_task_list(new_task)
 
     def sub_process_end(self) -> 'ProcessBuilder':
         # FIXME: remove in version 1
@@ -147,8 +142,7 @@ class BranchEndBuilder:
     def _wire_task_list(self,
                         new_task: WiredNode,
                         when: Optional[str] = None,
-                        loop: Optional[str] = None,
-                        lane: Optional[str] = None):
+                        loop: Optional[str] = None):
         branch_group = self.process_builder.nested_branches[-1]
         last_tasks = [branch.last_task for branch in branch_group.branches]
 
@@ -158,8 +152,7 @@ class BranchEndBuilder:
             cast(List[WiredNode], last_tasks),
             new_task,
             when=when,
-            loop=loop,
-            lane=lane)
+            loop=loop)
 
 
 class ProcessBuilder:
@@ -212,14 +205,12 @@ class ProcessBuilder:
     def task(self,
              name: str,
              when: Optional[str] = None,
-             loop: Optional[str] = None,
-             lane: Optional[str] = None) -> 'ProcessBuilder':
+             loop: Optional[str] = None) -> 'ProcessBuilder':
         """
         We add a regular task in the process.
         :param name:
         :param when:
         :param loop:
-        :param lane:
         :return:
         """
         new_task = Task(
@@ -227,7 +218,7 @@ class ProcessBuilder:
             id=next_id(),
             name=name)
 
-        return self._wire_task(new_task, loop=loop, when=when, lane=lane)
+        return self._wire_task(new_task, loop=loop, when=when)
 
     def process_end(self) -> 'ProcessBuilder':
         new_task = EndEvent(
@@ -246,14 +237,12 @@ class ProcessBuilder:
     def subprocess_start(self,
                          name: Optional[str] = None,
                          when: Optional[str] = None,
-                         loop: Optional[str] = None,
-                         lane: Optional[str] = None) -> 'ProcessBuilder':
+                         loop: Optional[str] = None) -> 'ProcessBuilder':
         """
         We start a subprocess. Subprocesses can also loop over the whole subprocess.
         :param name:
         :param when:
         :param loop:
-        :param lane:
         :return:
         """
         sub_process_builder = ProcessBuilder(
@@ -263,8 +252,7 @@ class ProcessBuilder:
 
         self._wire_task(cast(SubProcess, sub_process_builder.process),
                         loop=loop,
-                        when=when,
-                        lane=lane)
+                        when=when)
 
         return sub_process_builder
 
@@ -296,13 +284,12 @@ class ProcessBuilder:
     def usertask(self,
                   name: str,
                   when: Optional[str] = None,
-                  loop: Optional[str] = None,
-                  lane: Optional[str] = None):
+                  loop: Optional[str] = None):
         new_task = UserTask(
             parent_process=self.process,
             id=next_id(),
             name=name)
-        self._wire_task(new_task, when=when, loop=loop, lane=lane)
+        self._wire_task(new_task, when=when, loop=loop)
 
         return self
 
@@ -316,8 +303,7 @@ class ProcessBuilder:
     def _wire_task(self,
                    new_task: WiredNode,
                    when: Optional[str] = None,
-                   loop: Optional[str] = None,
-                   lane: Optional[str] = None) -> 'ProcessBuilder':
+                   loop: Optional[str] = None) -> 'ProcessBuilder':
         """
         Wire the given task in the process.
         :param new_task:
@@ -359,36 +345,18 @@ class ProcessBuilder:
 
         self.current_task = new_task
 
-        if lane is None:
-            return self
-
-        # we have a lane to consider
-        lane_element = self.process.lanes.get(lane, None)
-
-        if not lane_element:
-            lane_element = Lane(
-                id=next_id(),
-                name=lane,
-                parent_process=self.process)
-
-            self.process.add_lane(lane_element)
-
-        self.process.add_task_to_lane(lane_element, new_task.id)
-
         return self
 
     def _wire_task_list(self,
                         previous_tasks: List[WiredNode],
                         new_task: WiredNode,
                         when: Optional[str] = None,
-                        loop: Optional[str] = None,
-                        lane: Optional[str] = None) -> 'ProcessBuilder':
+                        loop: Optional[str] = None) -> 'ProcessBuilder':
         """
         Wire the given task in the process.
         :param new_task:
         :param when:
         :param loop:
-        :param lane:
         :return:
         """
         if loop is not None:
@@ -423,22 +391,6 @@ class ProcessBuilder:
             self.pre_current_when_task = self.current_task
 
         self.current_task = new_task
-
-        if lane is None:
-            return self
-
-        # we have a lane to consider
-        lane_element = self.process.lanes.get(lane, None)
-
-        if not lane_element:
-            lane_element = Lane(
-                id=next_id(),
-                name=lane,
-                parent_process=self.process)
-
-            self.process.add_lane(lane_element)
-
-        self.process.add_task_to_lane(lane_element, new_task.id)
 
         return self
 
