@@ -22,29 +22,17 @@ def repetitiveTask(context):
 
 @adhesive.task("ParallelTask1")
 def parallelTask1(context):
-    print("doing parallel task 1")
-    result = parallelTaskObj1.execute()
-    context.data.parallelTask1Result = result
-    print(result)
-    print("parallel task 1 done")
+    context.data.parallelTask1Result = parallelTaskObj1.execute()
 
 
 @adhesive.task("ParallelTask2")
 def parallelTask2(context):
-    print("doing parallel task 2")
-    result = parallelTaskObj2.execute()
-    context.data.parallelTask2Result = result
-    print(result)
-    print("parallel task 2 done")
+    context.data.parallelTask2Result = parallelTaskObj2.execute()
 
 
 @adhesive.task("ParallelTask3")
 def parallelTask3(context):
-    print("doing parallel task 3")
-    result = parallelTaskObj3.execute()
-    context.data.parallelTask3Result = result
-    print(result)
-    print("parallel task 3 done")
+    context.data.parallelTask3Result = parallelTaskObj3.execute()
 
 
 @adhesive.task("CalculateEndTask")

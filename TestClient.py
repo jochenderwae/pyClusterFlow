@@ -2,6 +2,7 @@ import socket
 
 from remoteWorker import WorkerDispatcher
 from remoteWorker.WorkerDispatcher import WorkerPool
+from testApplication.ParallelTask import ParallelTask
 
 if __name__ == '__main__':
 
