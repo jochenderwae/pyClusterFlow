@@ -47,9 +47,9 @@
       <bpmn:outgoing>Flow_04daxj4</bpmn:outgoing>
     </bpmn:task>
     <bpmn:sequenceFlow id="Flow_01n8g5b" name="end" sourceRef="Gateway_1pruikg" targetRef="Activity_1xn8mfx">
-        <bpmn:conditionExpression><![CDATA[True]]></bpmn:conditionExpression>
+        <bpmn:conditionExpression><![CDATA[endFlow]]></bpmn:conditionExpression>
     </bpmn:sequenceFlow>
-    <bpmn:sequenceFlow id="Flow_0ky3gqi" name="continue" sourceRef="Gateway_1pruikg" targetRef="Gateway_03zui4d" />
+    <bpmn:sequenceFlow id="Flow_0ky3gqi" name="continue" sourceRef="Gateway_1pruikg" targetRef="Gateway_03zui4d"/>
     <bpmn:endEvent id="Event_1ccelry">
       <bpmn:incoming>Flow_04daxj4</bpmn:incoming>
     </bpmn:endEvent>

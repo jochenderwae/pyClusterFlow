@@ -24,6 +24,8 @@ if __name__ == '__main__':
     #workers[0].startWorker()
     #pool.start()
 
+    #https://bpmn.io/
+
     from adhesive import config
     config.current.parallel_processing = 'thread'
     import testApplication.main

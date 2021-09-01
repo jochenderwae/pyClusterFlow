@@ -6,7 +6,7 @@ from remoteWorker.RemoteProxy import is_worker
 class ParallelTask(object):
 
     @RemoteProxy.method
-    def execute(self):
-        return "Parallel task executed. Is worker: {}".format(is_worker)
+    def execute(self, _dict):
+        return "Parallel task executed. Is worker: {} - count: {}".format(is_worker, _dict["count"])
 
 

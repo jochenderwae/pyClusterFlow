@@ -12,7 +12,8 @@ parallelTaskObj3 = ParallelTask()
 
 @adhesive.task("FirstTask")
 def firstTask(context):
-    pass
+    context.data.count = 3
+    context.data.endFlow = False
 
 
 @adhesive.task("RepetitiveTask")
@@ -22,17 +23,17 @@ def repetitiveTask(context):
 
 @adhesive.task("ParallelTask1")
 def parallelTask1(context):
-    context.data.parallelTask1Result = parallelTaskObj1.execute()
+    context.data.parallelTask1Result.append(parallelTaskObj1.execute(context.data.as_dict()))
 
 
 @adhesive.task("ParallelTask2")
 def parallelTask2(context):
-    context.data.parallelTask2Result = parallelTaskObj2.execute()
+    context.data.parallelTask2Result.append(parallelTaskObj2.execute(context.data.as_dict()))
 
 
 @adhesive.task("ParallelTask3")
 def parallelTask3(context):
-    context.data.parallelTask3Result = parallelTaskObj3.execute()
+    context.data.parallelTask3Result.append(parallelTaskObj3.execute(context.data.as_dict()))
 
 
 @adhesive.task("CalculateEndTask")
@@ -43,6 +44,9 @@ def calculateEndTask(context):
             outputs.append("context.%s = %r" % (attr, getattr(context, attr)))
     context.data.contextContent = outputs
     context.data.calculateEndTaskResult = "inputs: {}, {}".format(context.data.param1, context.data.param2)
+    context.data.count -= 1
+    if context.data.count == 0:
+        context.data.endFlow = True
 
 
 @adhesive.task("EndFlowTask")
@@ -52,7 +56,10 @@ def endFlowTask(context):
 
 initial_data = {
     "param1": "One",
-    "param2": 2
+    "param2": 2,
+    "parallelTask1Result": [],
+    "parallelTask2Result": [],
+    "parallelTask3Result": [],
 }
 ret = adhesive.bpmn_build("testApplication/diagram.bpmn", wait_tasks=False, initial_data=initial_data)
 if ret:
