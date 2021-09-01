@@ -1,7 +1,6 @@
 import socket
 
 from remoteWorker import WorkerDispatcher
-from TestClass import TestClass
 from remoteWorker.WorkerDispatcher import WorkerPool
 
 if __name__ == '__main__':
@@ -23,21 +22,7 @@ if __name__ == '__main__':
     #workers[0].install()
     #workers[0].startWorker()
     #pool.start()
-    '''
-    test = TestClass()
-    response = test.remote_method(1)
-    print("remote_method (1) returned: {}".format(response))
-    response = test.remote_method("Two")
-    print("remote_method (2) returned: {}".format(response))
-    response = test.remote_method("3")
-    print("remote_method (3) returned: {}".format(response))
-    try:
-        test.local_method()
-    except AttributeError:
-        pass
-    
-    test = None
-    '''
+
     from adhesive import config
     config.current.parallel_processing = 'thread'
     import testApplication.main

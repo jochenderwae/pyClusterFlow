@@ -33,7 +33,5 @@ setup(
         "windows-curses"
     ],
     packages=packages,
-    package_data={
-        #       '': ['*.txt', '*.rst'],
-        #       'adhesive': ['py.typed'],
-    })
+    package_data={}
+)

@@ -51,7 +51,8 @@ def parallelTask3(context):
 def calculateEndTask(context):
     outputs = []
     for attr in dir(context):
-        outputs.append("context.%s = %r" % (attr, getattr(context, attr)))
+        if not attr.startswith("_"):
+            outputs.append("context.%s = %r" % (attr, getattr(context, attr)))
     context.data.contextContent = outputs
     context.data.calculateEndTaskResult = "inputs: {}, {}".format(context.data.param1, context.data.param2)
 
@@ -69,7 +70,8 @@ ret = adhesive.bpmn_build("testApplication/diagram.bpmn", wait_tasks=False, init
 if ret:
     ret_dict = ret.as_dict()
     for name in ret_dict:
-        print("{}: {}".format(name, ret_dict[name]))
+        if not name.startswith("_"):
+            print("{}: {}".format(name, ret_dict[name]))
 
 for item in ret.contextContent:
     print(item)
