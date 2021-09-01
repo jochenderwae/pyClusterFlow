@@ -12,8 +12,6 @@ class ExecutionToken(Generic[T]):
     A context passed to an execution of a task. It holds the information
     about:
     - data that's attached to this token,
-    - workspace where files can be created. This depends on the actual runtime
-      (ie linux, windows, docker)
     - loop information (when in a loop).
 
     A process context it's an execution token that's being passed around.

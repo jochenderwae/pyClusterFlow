@@ -175,12 +175,10 @@ def is_potential_predecessor(self, event: ActiveEvent, e: ActiveEvent) -> bool:
 
 def deep_copy_event(e: ActiveEvent) -> ActiveEvent:
     """
-    We deepcopy everything except the workspace.
     :param e:
     :return:
     """
     try:
-        e.context.workspace = None
         result = copy.deepcopy(e)
         return result
     except Exception as err:
