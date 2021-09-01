@@ -17,7 +17,6 @@ class WorkerThreadState(Enum):
 
 def start(settingsDictionary):
     worker = Worker(settingsDictionary)
-    print("starting worker")
     worker.start()
     return worker
 
@@ -39,7 +38,6 @@ class Worker(object):
             self.resources[resourceName] = []
             for i in range(amount):
                 self.resources[resourceName].append(resourceName)
-        print(self.resources)
 
     def start(self):
         serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -48,10 +46,8 @@ class Worker(object):
 
         while True:
             (clientSocket, address) = serverSocket.accept()
-            print("Creating new WorkerThread")
             ct = WorkerThread(self, clientSocket)
-            ct.run()
-            print("thread started")
+            ct.start()
 
     def reserveResources(self, requiredResources):
         reservedResources = []
@@ -87,7 +83,6 @@ class WorkerThread(threading.Thread):
         try:
             while True:
                 data = self.read()
-                print("data read")
                 command = pickle.loads(data)
                 response = self.handleCommand(command)
 
@@ -96,12 +91,10 @@ class WorkerThread(threading.Thread):
                                             IllegalWorkerStateException("Call resulted in an empty response"))
 
                 data = pickle.dumps(response)
-                print("send response")
                 self.send(data)
-                print("response sent")
 
         except (RuntimeError, ConnectionResetError):
-            print("socket closed")
+            pass
 
         self.state = WorkerThreadState.ENDED
         self.worker.releaseResources(self.reservedResources)

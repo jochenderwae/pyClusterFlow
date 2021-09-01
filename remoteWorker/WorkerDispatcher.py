@@ -99,7 +99,6 @@ class WorkerProxy(object):
         ssh_stdin, ssh_stdout, ssh_stderr = self.ssh.exec_command("sudo mkdir -p {}".format(self.workingDirectory))
         ssh_stdin, ssh_stdout, ssh_stderr = self.ssh.exec_command("sudo chmod a+rwx {}".format(self.workingDirectory))
         for directory in directories:
-            print("mkdir -p {}".format(str(directory)))
             ssh_stdin, ssh_stdout, ssh_stderr = self.ssh.exec_command("mkdir -p {}".format(str(directory)))
             for line in iter(ssh_stderr.readline, ""):
                 print(line, end="")
@@ -111,7 +110,6 @@ class WorkerProxy(object):
     def startWorker(self):
         self._initiateSSH()
         self.ssh.exec_command("cd {} && bash workerSetup.sh".format(self.workingDirectory))
-        print("starting worker")
         ssh_stdin, ssh_stdout, ssh_stderr = self.ssh.exec_command(
             "cd {} && source ./worker_venv/bin/activate && python3 Worker.py piworker1.Config.json".format(self.workingDirectory), get_pty=True)
 
@@ -126,20 +124,16 @@ class WorkerProxy(object):
 
         x = threading.Thread(target=outputter)
         x.start()
-        print("worker started")
 
         time.sleep(60)
 
     def createInstance(self, clsName, requiredResources, *args, **kwargs):
         try:
             instanceProxy = InstanceProxy(self)
-            print(f"Creating object {clsName}")
             instanceProxy.createInstance(clsName, requiredResources, *args, **kwargs)
-            print("object created")
             self.instances.append(instanceProxy)
             return instanceProxy
         except Exception as e:
-            print(e)
             return None
 
     def removeInstance(self, instance):
@@ -167,11 +161,8 @@ class InstanceProxy:
 
         remoteInvoke = RemoteCreate(clsName, requiredResources, *args, **kwargs)
         data = pickle.dumps(remoteInvoke)
-        print("send data")
         self.send(data)
-        print("recv data")
         data = self.read()
-        print("data received")
         obj = pickle.loads(data)
 
         if obj.exception is not None:
@@ -232,12 +223,8 @@ class WorkerPool:
             instance.release()
 
     def createRemote(self, clsName, requiredResources, *args, **kwargs):
-        print("workers:{}".format(len(self.workers)))
         for remoteWorker in self.workers:
             remoteInstance = remoteWorker.createInstance(clsName, requiredResources, *args, **kwargs)
-            print(requiredResources)
-            print(remoteWorker.port)
-            print(remoteInstance)
             if remoteInstance is not None:
                 self.remoteInstances.append(remoteInstance)
                 return remoteInstance
