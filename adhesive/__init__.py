@@ -53,10 +53,7 @@ _DecoratedCallbackFunction = Union[  # FIXME: this is terrible
     Callable[[Token[T], Callable[[Any], None], str, str, str, str], V],
 ]
 
-WorkspaceGenerator = Generator[Any, Any, None]
 MessageGenerator = Generator[Any, Any, None]
-
-LaneFunction = _DecoratedFunction[T, WorkspaceGenerator]
 MessageFunction = _DecoratedFunction[T, MessageGenerator]
 
 #FIXME: move decorators into their own place

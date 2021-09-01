@@ -4,7 +4,7 @@ from typing import Union
 from adhesive import config
 
 
-def ensure_folder(item: Union['ExecutionToken', 'Workspace', 'ActiveEvent', str]) -> str:
+def ensure_folder(item: Union['ExecutionToken', 'ActiveEvent', str]) -> str:
     """
     Ensures the folder for the given item exists.
 
