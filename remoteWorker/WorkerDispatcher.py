@@ -77,7 +77,6 @@ class WorkerProxy(object):
         self.workingDirectory = "/srv/worker"
         self.ssh_stdout = None
         self.ssh_stderr = None
-
         self.instances = []
 
     def _initiateSSH(self):

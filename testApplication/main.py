@@ -3,7 +3,7 @@ import sys
 import adhesive
 
 # use https://demo.bpmn.io/
-from testApplication.ParallelTask import ParallelTask
+from testApplication.ParallelTask import ParallelTask, RepetitiveTask
 
 parallelTaskObj1 = ParallelTask()
 parallelTaskObj2 = ParallelTask()
@@ -16,9 +16,7 @@ def firstTask(context):
     context.data.endFlow = False
 
 
-@adhesive.task("RepetitiveTask")
-def repetitiveTask(context):
-    pass
+RepetitiveTask.bindToDefinition("RepetitiveTask")
 
 
 @adhesive.task("ParallelTask1")
@@ -70,4 +68,3 @@ if ret:
 
 for item in ret.contextContent:
     print(item)
-
