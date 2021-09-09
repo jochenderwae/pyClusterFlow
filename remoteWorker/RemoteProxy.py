@@ -3,6 +3,7 @@ import functools
 import inspect
 from typing import Optional, Union, List
 
+import adhesive
 from adhesive import ExecutionTask, AdhesiveProcess, ExecutionToken
 from adhesive.execution import token_utils
 from adhesive.execution.ExecutionBaseTask import ExecutionBaseTask
@@ -72,8 +73,34 @@ def remote_method(self):
     pass
 
 
-class RemoteTask(ExecutionBaseTask):
+class RemoteTask:
     __metaclass__ = abc.ABCMeta
+
+    class AdhesiveTask(ExecutionBaseTask):
+        def __init__(self, *task_names: str,
+                     re: Optional[Union[str, List[str]]] = None,
+                     loop: Optional[str] = None,
+                     when: Optional[str] = None,
+                     deduplicate: Optional[str] = None,
+                     remoteInstance=None):
+            super().__init__(expressions=task_names,
+                             regex_expressions=re,
+                             deduplicate=deduplicate,
+                             code=None
+                             )
+            self.loop = loop
+            self.when = when
+            self.remoteInstance = remoteInstance
+
+        def invoke(self, event: ActiveEvent) -> ExecutionToken:
+            with redirect_stdout(event):
+                params = token_utils.matches(self.re_expressions, event.context.task_name)
+
+                returnValue = self.remoteInstance.invoke(event.context.data.as_dict())
+                # TODO: do something with this return value
+
+                return event.context
+
 
     @classmethod
     def bindToDefinition(cls, *task_names: str,
@@ -81,47 +108,33 @@ class RemoteTask(ExecutionBaseTask):
                          loop: Optional[str] = None,
                          when: Optional[str] = None,
                          deduplicate: Optional[str] = None):
-        instance = cls(*task_names, re=re, loop=loop, when=when, deduplicate=deduplicate, klass=cls)
-        process = AdhesiveProcess('_root')
-        process.task_definitions.append(instance)
-        process.chained_task_definitions.append(instance)
-
-    def __init__(self, *task_names: str,
-                 re: Optional[Union[str, List[str]]] = None,
-                 loop: Optional[str] = None,
-                 when: Optional[str] = None,
-                 deduplicate: Optional[str] = None,
-                 klass=None):
-        super().__init__(expressions=task_names,
-                         regex_expressions=re,
-                         deduplicate=deduplicate,
-                         code=None
-                         )
-        self.loop = loop
-        self.when = when
 
         clsName = ""
-        module = klass.__module__
+        module = cls.__module__
         if module == 'builtins':
-            clsName = klass.__qualname__
+            clsName = cls.__qualname__
         else:
-            clsName = module + '.' + klass.__qualname__
+            clsName = module + '.' + cls.__qualname__
 
-        self.remoteInstanceHandle = WorkerDispatcher.createRemote(clsName, self.getRequiredResources())
+        remoteInstanceHandle = WorkerDispatcher.createRemote(clsName, cls.getRequiredResources())
 
-    def invoke(self, event: ActiveEvent) -> ExecutionToken:
-        with redirect_stdout(event):
-            params = token_utils.matches(self.re_expressions, event.context.task_name)
+        remoteInstance = cls(remoteInstanceHandle)
+        task = RemoteTask.AdhesiveTask(*task_names, re=re, loop=loop, when=when, deduplicate=deduplicate, remoteInstance=remoteInstance)
+        adhesive.process.task_definitions.append(task)
+        adhesive.process.chained_task_definitions.append(task)
 
-            self.remoteInstanceHandle.call("execute", event.context.data.as_dict())
+    def __init__(self, remoteInstanceHandle=None):
+        self.remoteInstanceHandle = remoteInstanceHandle
 
-            return event.context
+    def invoke(self, data):
+        return self.remoteInstance.call("execute", data)
 
     @abc.abstractmethod
     def execute(self, data):
         """Method documentation"""
         return
 
+    @classmethod
     @abc.abstractmethod
     def getRequiredResources(self):
         return {"cpu": 1}

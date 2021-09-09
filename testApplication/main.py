@@ -3,6 +3,7 @@ import sys
 import adhesive
 
 # use https://demo.bpmn.io/
+from adhesive import AdhesiveProcess
 from testApplication.ParallelTask import ParallelTask, RepetitiveTask
 
 parallelTaskObj1 = ParallelTask()
@@ -50,6 +51,9 @@ def calculateEndTask(context):
 @adhesive.task("EndFlowTask")
 def endFlowTask(context):
     pass
+
+
+print(adhesive.process.task_definitions)
 
 
 initial_data = {
