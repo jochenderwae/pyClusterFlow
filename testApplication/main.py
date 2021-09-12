@@ -6,10 +6,6 @@ import adhesive
 from adhesive import AdhesiveProcess
 from testApplication.ParallelTask import ParallelTask, RepetitiveTask
 
-parallelTaskObj1 = ParallelTask()
-parallelTaskObj2 = ParallelTask()
-parallelTaskObj3 = ParallelTask()
-
 
 @adhesive.task("FirstTask")
 def firstTask(context):
@@ -18,21 +14,9 @@ def firstTask(context):
 
 
 RepetitiveTask.bindToDefinition("RepetitiveTask")
-
-
-@adhesive.task("ParallelTask1")
-def parallelTask1(context):
-    context.data.parallelTask1Result.append(parallelTaskObj1.execute(context.data.as_dict()))
-
-
-@adhesive.task("ParallelTask2")
-def parallelTask2(context):
-    context.data.parallelTask2Result.append(parallelTaskObj2.execute(context.data.as_dict()))
-
-
-@adhesive.task("ParallelTask3")
-def parallelTask3(context):
-    context.data.parallelTask3Result.append(parallelTaskObj3.execute(context.data.as_dict()))
+ParallelTask.bindToDefinition("ParallelTask1")
+ParallelTask.bindToDefinition("ParallelTask2")
+ParallelTask.bindToDefinition("ParallelTask3")
 
 
 @adhesive.task("CalculateEndTask")
@@ -59,9 +43,7 @@ print(adhesive.process.task_definitions)
 initial_data = {
     "param1": "One",
     "param2": 2,
-    "parallelTask1Result": [],
-    "parallelTask2Result": [],
-    "parallelTask3Result": [],
+    "ParallelTask_data": []
 }
 ret = adhesive.bpmn_build("testApplication/diagram.bpmn", wait_tasks=False, initial_data=initial_data)
 if ret:

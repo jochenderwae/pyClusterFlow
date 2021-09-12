@@ -7,6 +7,7 @@ import adhesive
 from adhesive import ExecutionTask, AdhesiveProcess, ExecutionToken
 from adhesive.execution import token_utils
 from adhesive.execution.ExecutionBaseTask import ExecutionBaseTask
+from adhesive.execution.ExecutionData import ExecutionData
 from adhesive.logredirect.LogRedirect import redirect_stdout
 from adhesive.model.ActiveEvent import ActiveEvent
 from remoteWorker import WorkerDispatcher
@@ -96,8 +97,8 @@ class RemoteTask:
             with redirect_stdout(event):
                 params = token_utils.matches(self.re_expressions, event.context.task_name)
 
-                returnValue = self.remoteInstance.invoke(event.context.data.as_dict())
-                # TODO: do something with this return value
+                dataDict = self.remoteInstance.invoke(event.context.data.as_dict())
+                event.context.data = ExecutionData(dataDict)
 
                 return event.context
 
@@ -127,12 +128,12 @@ class RemoteTask:
         self.remoteInstanceHandle = remoteInstanceHandle
 
     def invoke(self, data):
-        return self.remoteInstance.call("execute", data)
+        return self.remoteInstanceHandle.call("execute", data)
 
     @abc.abstractmethod
     def execute(self, data):
         """Method documentation"""
-        return
+        return data
 
     @classmethod
     @abc.abstractmethod

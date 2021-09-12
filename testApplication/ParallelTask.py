@@ -2,14 +2,14 @@ from remoteWorker import RemoteProxy
 from remoteWorker.RemoteProxy import is_worker, RemoteTask
 
 
-@RemoteProxy.remote(resources={"cpu": 1})
-class ParallelTask(object):
+class ParallelTask(RemoteTask):
 
-    @RemoteProxy.method
-    def execute(self, _dict):
-        return "Parallel task executed. Is worker: {} - count: {}".format(is_worker, _dict["count"])
+    def execute(self, data):
+        data["ParallelTask_data"].append("Parallel task executed. Is worker: {} - count: {}".format(is_worker, data["count"]))
+        return data
 
 
 class RepetitiveTask(RemoteTask):
     def execute(self, data):
         data["RepetitiveTask"] = "Task is done"
+        return data
